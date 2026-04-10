@@ -1,16 +1,27 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 
 from app.core.database import engine, SessionLocal
 from app.models.base import Base
 from app.models.car import Car
 from app.schemas.car import CarCreate
+
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 Base.metadata.create_all(bind=engine)
+
 @app.get("/")
 def root():
-    return {"System is running"}
+    return {"message": "System is running"}
 
 @app.get("/cars")
 def get_cars():
@@ -30,6 +41,7 @@ def get_cars():
         ]
     finally:
         db.close()
+
 
 @app.post("/cars")
 def create_car(car_data: CarCreate):

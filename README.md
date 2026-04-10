@@ -4,7 +4,7 @@ This project is a system for managing a car rental company.
 
 The final application will provide a REST API and a web interface that allow customers to browse available cars, create reservations, manage rentals and make payments. On the administrative side, it will support fleet management, customer management and rental processing.
 
-The system is built with FastAPI, PostgreSQL and SQLAlchemy, uses Alembic for database migrations and is designed to be extended with a React-based frontend.
+The system is built with FastAPI, PostgreSQL and SQLAlchemy, uses Alembic for database migrations and React for frontend.
 
 ---
 
@@ -17,6 +17,19 @@ The system is built with FastAPI, PostgreSQL and SQLAlchemy, uses Alembic for da
 - PostgreSQL
 - React
 - Docker Compose
+
+---
+
+## Architecture
+
+The application consists of three services:
+
+- frontend (React, port 5173)
+- backend (FastAPI, port 8000)
+- database (PostgreSQL, port 5432)
+
+The frontend communicates with the backend via HTTP API.
+The backend communicates with the database using SQLAlchemy.
 
 ---
 
@@ -37,8 +50,8 @@ docker compose up --build
 
 This command will:
 - start the PostgreSQL database,
-- build the backend container,
-- start the FastAPI server.
+- build and start the backend container (FastAPI),
+- build and start the frontend container (React).
 
 ---
 
@@ -46,11 +59,14 @@ This command will:
 
 After the containers are running, open a browser and go to:
 
+**Frontend (React):**
+http://localhost:5173
+
+**Cars page:**
+http://localhost:5173/cars
+
 **API documentation (Swagger UI):**
 http://localhost:8000/docs
-
-**Basic endpoint:**
-http://localhost:8000/
 
 ---
 
@@ -73,6 +89,9 @@ Example request body:
   "status": "available"
 }
 ```
+
+You can also view cars in the frontend at:
+http://localhost:5173/cars
 
 ---
 
@@ -100,9 +119,9 @@ Internal connection settings:
 
 ## Notes
 
-- The backend runs with automatic reload enabled.
-- Database data is stored in a Docker volume.
-- Tables are created automatically on application startup.
+- The backend and frontend run with automatic reload enabled.
+- The frontend communicates with the backend via HTTP (port 8000).
+- CORS is configured to allow requests from the frontend.
 
 ---
 
