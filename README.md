@@ -53,11 +53,21 @@ This command will:
 - build and start the backend container (FastAPI),
 - build and start the frontend container (React).
 
+### Database migrations (Alembic)
+
+After starting the containers, run:
+
+```bash
+docker compose exec backend alembic upgrade head
+```
+
+This creates all database tables.
+
 ---
 
 ## Accessing the application
 
-After the containers are running, open a browser and go to:
+After the containers are running and the database is built, open a browser and go to:
 
 **Frontend (React):**
 http://localhost:5173
