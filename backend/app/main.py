@@ -17,8 +17,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-Base.metadata.create_all(bind=engine)
-
 @app.get("/")
 def root():
     return {"message": "System is running"}
@@ -41,7 +39,6 @@ def get_cars():
         ]
     finally:
         db.close()
-
 
 @app.post("/cars")
 def create_car(car_data: CarCreate):
