@@ -13,6 +13,7 @@ class Customer(Base):
     first_name: Mapped[str] = mapped_column(String(50), nullable=False)
     last_name: Mapped[str] = mapped_column(String(50), nullable=False)
     email: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     phone: Mapped[str] = mapped_column(String(30), nullable=False)
     date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)
     driver_license_no: Mapped[str | None] = mapped_column(String(50), nullable=True)
