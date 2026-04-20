@@ -7,6 +7,9 @@ from app.models.base import Base
 from app.models.car import Car
 from app.schemas.car import CarCreate
 
+from app.api import *
+
+
 app = FastAPI()
 
 app.add_middleware(
@@ -16,6 +19,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(login_router)
 
 @app.get("/")
 def root():

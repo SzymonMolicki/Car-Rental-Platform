@@ -53,6 +53,22 @@ This command will:
 - build and start the backend container (FastAPI),
 - build and start the frontend container (React).
 
+### Environment variables
+
+Backend secrets are loaded from the root `.env` file. This file is ignored by git.
+Use `.env.example` as a template.
+
+Required backend variables:
+
+- `SECRET_KEY` - JWT signing key, at least 32 characters long
+- `ADMIN_USERNAME` - administrator login
+- `ADMIN_PASSWORD_HASH` - Argon2id hash of the administrator password
+
+For local development, the prepared `.env` file allows logging in with:
+
+- login: `admin`
+- password: `admin`
+
 ### Database migrations (Alembic)
 
 After starting the containers, run:

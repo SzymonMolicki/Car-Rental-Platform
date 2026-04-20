@@ -1,6 +1,10 @@
 __pycache__/
 *.pyc
 
+.env
+.env.*
+!.env.example
+
 backend/.venv/
 .venv/
 venv/
