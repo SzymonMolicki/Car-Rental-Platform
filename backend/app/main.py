@@ -21,6 +21,7 @@ app.add_middleware(
 )
 
 app.include_router(login_router)
+app.include_router(admin_cars_router)
 
 @app.get("/")
 def root():
