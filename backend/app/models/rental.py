@@ -28,4 +28,4 @@ class Rental(Base):
     payment_method: Mapped[str | None] = mapped_column(String(30), nullable=True)
     payment_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
     paid_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)

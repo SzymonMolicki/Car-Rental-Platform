@@ -22,6 +22,9 @@ app.add_middleware(
 
 app.include_router(login_router)
 app.include_router(admin_cars_router)
+app.include_router(admin_customers_router)
+app.include_router(admin_discounts_router)
+app.include_router(admin_rentals_router)
 app.include_router(signup_router)
 
 @app.get("/")
