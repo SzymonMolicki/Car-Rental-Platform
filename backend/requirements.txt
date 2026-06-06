@@ -6,3 +6,4 @@ email-validator
 PyJWT
 passlib[argon2]
 argon2-cffi
+reportlab
