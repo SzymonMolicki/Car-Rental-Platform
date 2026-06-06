@@ -1,18 +1,20 @@
 from datetime import datetime
+from decimal import Decimal
+from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, Numeric, String
+from sqlalchemy import Boolean, DateTime, Numeric, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
 
 
 class Discount(Base):
-    __tablename__ = "discounts"
+    __tablename__ = "discount"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-    code: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
-    percent_value: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)
+    discount_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    code: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    percent_value: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
     valid_from: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     valid_to: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

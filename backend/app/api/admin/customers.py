@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,7 +19,7 @@ def get_customers(db: Session = Depends(get_db)) -> list[Customer]:
 
 
 @router.get("/customers/{customer_id}", response_model=CustomerResponse)
-def get_customer(customer_id: int, db: Session = Depends(get_db)) -> Customer:
+def get_customer(customer_id: UUID, db: Session = Depends(get_db)) -> Customer:
     customer = db.get(Customer, customer_id)
 
     if customer is None:
@@ -27,7 +29,7 @@ def get_customer(customer_id: int, db: Session = Depends(get_db)) -> Customer:
 
 
 @router.delete("/customers/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_customer(customer_id: int, db: Session = Depends(get_db)) -> None:
+def delete_customer(customer_id: UUID, db: Session = Depends(get_db)) -> None:
     customer = db.get(Customer, customer_id)
 
     if customer is None:

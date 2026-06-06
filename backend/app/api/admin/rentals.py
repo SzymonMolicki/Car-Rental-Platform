@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,7 +19,7 @@ def get_rentals(db: Session = Depends(get_db)) -> list[Rental]:
 
 
 @router.get("/rentals/{rental_id}", response_model=RentalResponse)
-def get_rental(rental_id: int, db: Session = Depends(get_db)) -> Rental:
+def get_rental(rental_id: UUID, db: Session = Depends(get_db)) -> Rental:
     rental = db.get(Rental, rental_id)
 
     if rental is None:

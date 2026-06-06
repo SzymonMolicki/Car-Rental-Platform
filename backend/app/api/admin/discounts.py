@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,7 +19,7 @@ def get_discounts(db: Session = Depends(get_db)) -> list[Discount]:
 
 
 @router.get("/discounts/{discount_id}", response_model=DiscountResponse)
-def get_discount(discount_id: int, db: Session = Depends(get_db)) -> Discount:
+def get_discount(discount_id: UUID, db: Session = Depends(get_db)) -> Discount:
     discount = db.get(Discount, discount_id)
 
     if discount is None:
@@ -26,16 +28,18 @@ def get_discount(discount_id: int, db: Session = Depends(get_db)) -> Discount:
     return discount
 
 
-@router.post("/discounts")
-def create_discount(discount: DiscountCreate, db: Session = Depends(get_db)) -> None:
+@router.post("/discounts", response_model=DiscountResponse, status_code=status.HTTP_201_CREATED)
+def create_discount(discount: DiscountCreate, db: Session = Depends(get_db)) -> Discount:
     new_discount = Discount(**discount.model_dump())
     db.add(new_discount)
     db.commit()
     db.refresh(new_discount)
 
+    return new_discount
+
 
 @router.delete("/discounts/{discount_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_discount(discount_id: int, db: Session = Depends(get_db)) -> None:
+def delete_discount(discount_id: UUID, db: Session = Depends(get_db)) -> None:
     discount = db.get(Discount, discount_id)
 
     if discount is None:
@@ -46,7 +50,7 @@ def delete_discount(discount_id: int, db: Session = Depends(get_db)) -> None:
 
 
 @router.patch("/discounts/{discount_id}", response_model=DiscountResponse)
-def update_discount(discount_id: int, discount_data: DiscountUpdate, db: Session = Depends(get_db)) -> Discount:
+def update_discount(discount_id: UUID, discount_data: DiscountUpdate, db: Session = Depends(get_db)) -> Discount:
     discount = db.get(Discount, discount_id)
 
     if discount is None:

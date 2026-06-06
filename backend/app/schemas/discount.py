@@ -1,4 +1,6 @@
 from datetime import datetime
+from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -23,7 +25,7 @@ class DiscountUpdate(BaseModel):
 class DiscountResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    discount_id: UUID
     name: str
     code: str
     percent_value: float
