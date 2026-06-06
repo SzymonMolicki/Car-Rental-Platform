@@ -11,7 +11,6 @@
 \usepackage{booktabs}
 \usepackage{tabularx}
 \usepackage{longtable}
-\usepackage{enumitem}
 \usepackage{hyperref}
 \usepackage{titlesec}
 \usepackage{fancyhdr}
@@ -146,7 +145,7 @@ Staff & Manage cars and customers, settle rentals, issue invoices and communicat
 \end{table}
 
 \section{Database Diagram}
-The current database design is centered around the \texttt{RENTAL} table, which connects customers, cars, pickup and return locations and optional discounts.
+The current database design is centered around the \texttt{RENTAL} table, which connects customers, cars, pickup and return locations. Financial settlement is represented separately by the \texttt{INVOICE} table, while vehicle attributes, rental states and payment data are normalized through dedicated lookup entities.
 
 \begin{figure}[h!]
     \centering
@@ -156,22 +155,36 @@ The current database design is centered around the \texttt{RENTAL} table, which 
 
 \clearpage
 \section{Core Entities}
-\begin{table}[h!]
-\centering
 \small
-\begin{tabularx}{\textwidth}{@{}p{2.7cm}X@{}}
+\begin{longtable}{@{}p{3.2cm}p{11.8cm}@{}}
+
 \toprule
 \textbf{Entity} & \textbf{Role in the system} \\
 \midrule
-\texttt{CUSTOMER} & Stores personal, contact, and driving license data required for rentals. \\
-\texttt{LOCATION} & Represents rental branches used as car storage points and pickup or return places. \\
-\texttt{CAR} & Stores vehicle identity, characteristics, status, rate, mileage and current location. \\
-\texttt{DISCOUNT} & Stores discount codes and percentage-based promotions with validity dates. \\
-\texttt{RENTAL} & Central transactional entity describing reservation and rental execution, cost calculation, invoice data and payment status. \\
+\endfirsthead
+\toprule
+\textbf{Entity} & \textbf{Role in the system} \\
+\midrule
+\endhead
+\texttt{CUSTOMER} & Stores personal, contact, authentication and driving license data required for rentals. \\
+\texttt{ADDRESS} & Stores reusable address data used by customers and rental locations. \\
+\texttt{LOCATION} & Represents rental locations with contact data and an address, used as car storage, pickup and return places. \\
+\texttt{CAR} & Stores vehicle identity, descriptive attributes, mileage, daily rate, current location and references to vehicle lookup entities. \\
+\texttt{FUEL\_TYPE} & Lookup entity describing the fuel type assigned to a car. \\
+\texttt{TRANSMISSION} & Lookup entity describing the transmission type assigned to a car. \\
+\texttt{CAR\_TYPE} & Lookup entity classifying cars by body or business category. \\
+\texttt{CAR\_STATUS} & Lookup entity describing the operational status of a car, for example available or unavailable. \\
+\texttt{RENTAL} & Central transactional entity describing reservation and rental execution, including customer, car, pickup and return locations, status and rental dates. \\
+\texttt{RENTAL\_STATUS} & Lookup entity describing the state of a rental. \\
+\texttt{INVOICE} & Stores settlement data for a rental, including invoice number, amounts before and after discount, issue date, payment method, payment status and payment timestamp. \\
+\texttt{PAYMENT\_STATUS} & Lookup entity describing whether an invoice payment is pending, completed, failed or otherwise classified. \\
+\texttt{PAYMENT\_METHOD} & Lookup entity describing the payment method used for an invoice. \\
+\texttt{DISCOUNT} & Stores discount codes and percentage-based promotions with validity dates and active flag; applied to invoices when used. \\
 \bottomrule
-\end{tabularx}
-\caption{Main entities visible in the current database diagram.}
-\end{table}
+\caption{Main entities visible in the database diagram.}
+\end{longtable}
+
+\normalsize
 
 \section{Conclusion}
 This first report presents the agreed project direction in a concise form: the project scope, the selected Python-based technology stack and the initial relational database design.
