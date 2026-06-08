@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.core.config import ADMIN_PASSWORD_HASH, ADMIN_USERNAME
-from app.core.security import verify_password, create_access_token
+from app.core.security import create_access_token, verify_password
 from app.models.customer import Customer
 
 
@@ -29,12 +29,4 @@ def login_customer(db: Session, email: str, password: str) -> str | None:
     if not verify_password(password, customer.password_hash):
         return None
 
-    token = create_access_token(
-        data={
-            "sub": str(customer.id),
-            "email": customer.email,
-            "account_type": "customer",
-        }
-    )
-
-    return token
+    return create_access_token(data={"sub": str(customer.customer_id), "email": customer.email,"account_type": "customer"})

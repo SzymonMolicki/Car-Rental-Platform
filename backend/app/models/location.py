@@ -1,17 +1,16 @@
-from sqlalchemy import String
+from uuid import UUID, uuid4
+
+from sqlalchemy import ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
 
 
 class Location(Base):
-    __tablename__ = "locations"
+    __tablename__ = "location"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
-    street: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    city: Mapped[str] = mapped_column(String(50), nullable=False)
-    postal_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
-    country: Mapped[str] = mapped_column(String(50), nullable=False)
-    phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
-    email: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    location_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
+    address_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("address.address_id"), nullable=False)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    phone: Mapped[str] = mapped_column(String, nullable=False)
+    email: Mapped[str] = mapped_column(String, nullable=False)

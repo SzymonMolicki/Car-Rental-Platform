@@ -143,6 +143,86 @@
   font: inherit;
 }
 
+.auth-switch {
+  margin: 18px 0 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.auth-switch a {
+  text-decoration: underline;
+}
+
+.secondary-menu {
+  width: 100%;
+  background: rgba(44, 43, 44, 0.08);
+  border-bottom: 1px solid rgba(44, 43, 44, 0.15);
+  padding: 12px 0;
+}
+
+.secondary-menu-inner {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.menu-button {
+  display: inline-block;
+  padding: 10px 16px;
+  border: 2px solid #2c2b2c;
+  border-radius: 8px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.5);
+  color: #2c2b2c;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+
+.menu-button:hover {
+  background: rgba(255, 231, 92, 0.4);
+}
+
+.user-hub-layout {
+  width: min(1100px, 100%);
+  margin: 0 auto;
+}
+
+.user-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+  margin-top: 32px;
+}
+
+.user-hub-card {
+  background: rgba(255, 255, 255, 0.5);
+  border: 2px solid #2c2b2c;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 0 #2c2b2c;
+}
+
+.user-hub-card h2 {
+  margin: 0 0 16px;
+  color: #2c2b2c;
+  font-size: 1.5rem;
+}
+
+.user-hub-card p {
+  margin: 12px 0;
+  color: #2c2b2c;
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.user-hub-card .primary-link {
+  margin-top: 16px;
+  display: inline-block;
+}
+
 * {
   box-sizing: border-box;
 }

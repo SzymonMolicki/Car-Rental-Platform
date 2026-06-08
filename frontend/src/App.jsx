@@ -22,17 +22,13 @@ function TopPanel({ isLoggedIn, onLogout }) {
         </Link>
 
         <nav className="top-panel-links">
-          <Link className="top-link" to="/cars">
-            Cars
-          </Link>
-
           {!isLoggedIn && (
             <>
               <Link className="top-link" to="/login">
                 Login
               </Link>
-              <Link className="top-link top-link-accent" to="/register">
-                Register
+              <Link className="top-link top-link-accent" to="/signup">
+                Sign up
               </Link>
             </>
           )}
@@ -48,10 +44,30 @@ function TopPanel({ isLoggedIn, onLogout }) {
   );
 }
 
+function SecondaryMenu({ isLoggedIn }) {
+  if (!isLoggedIn) {
+    return null;
+  }
+
+  return (
+    <nav className="secondary-menu">
+      <div className="secondary-menu-inner">
+        <Link className="menu-button" to="/cars">
+          Cars
+        </Link>
+        <Link className="menu-button" to="/user">
+          User Hub
+        </Link>
+      </div>
+    </nav>
+  );
+}
+
 function HomePage({ isLoggedIn, onLogout }) {
   return (
     <main className="page">
       <TopPanel isLoggedIn={isLoggedIn} onLogout={onLogout} />
+      <SecondaryMenu isLoggedIn={isLoggedIn} />
 
       <div className="home-layout">
         <h1>MetroCars</h1>
@@ -133,15 +149,10 @@ function CarsPage({ isLoggedIn, onLogout }) {
   return (
     <main className="page">
       <TopPanel isLoggedIn={isLoggedIn} onLogout={onLogout} />
+      <SecondaryMenu isLoggedIn={isLoggedIn} />
 
       <div className="cars-layout">
-        <header className="cars-header">
-          <div className="topbar">
-            <Link className="back-link" to="/">
-              ← Home
-            </Link>
-          </div>
-
+        <header className="cars-header">          
           <p className="eyebrow">MetroCars</p>
           <h1>Available cars</h1>
           <CarsMotionStrip />
@@ -204,14 +215,6 @@ function LoginPage({ isLoggedIn, onLogin, onLogout }) {
     setMessage("");
     setLoading(true);
 
-    if (email === "admin" && password === "admin") {
-      onLogin("local-admin-token", "admin");
-      setMessage("Login successful.");
-      navigate("/cars");
-      setLoading(false);
-      return;
-    }
-
     try {
       const response = await fetch(`${API_URL}/login`, {
         method: "POST",
@@ -260,12 +263,294 @@ function LoginPage({ isLoggedIn, onLogin, onLogout }) {
 
         {message && <p className="status-text">{message}</p>}
         {error && <p className="status-text error-text">{error}</p>}
+
+        <p className="auth-switch">
+          No account yet? <Link to="/signup">Sign up</Link>
+        </p>
       </section>
     </main>
   );
 }
 
-function RegisterPage({ isLoggedIn, onLogout }) {
+function UserHubPage({ isLoggedIn, onLogout, authToken }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const response = await fetch(`${API_URL}/user`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch user data");
+        setUser(await response.json());
+      } catch (err) {
+        setError(err.message || "Could not load user data.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (isLoggedIn && authToken) {
+      fetchUser();
+    }
+  }, [isLoggedIn, authToken]);
+
+  return (
+    <main className="page">
+      <TopPanel isLoggedIn={isLoggedIn} onLogout={onLogout} />
+      <SecondaryMenu isLoggedIn={isLoggedIn} />
+
+      <div className="user-hub-layout">
+        <h1>User Hub</h1>
+
+        {loading && <p className="status-text">Loading user data...</p>}
+        {error && <p className="status-text error-text">{error}</p>}
+
+        {user && !loading && (
+          <div className="user-hub-grid">
+            <section className="user-hub-card">
+              <h2>📋 Profile</h2>
+              <p><strong>Name:</strong> {user.first_name} {user.last_name}</p>
+              <p><strong>Email:</strong> {user.email}</p>
+              <p><strong>Phone:</strong> {user.phone || "N/A"}</p>
+              <Link className="primary-link" to="/user/edit">
+                Edit Profile
+              </Link>
+            </section>
+
+            <section className="user-hub-card">
+              <h2>🚗 Rental History</h2>
+              <Link className="primary-link" to="/user/rentals">
+                View Rentals
+              </Link>
+            </section>
+
+            <section className="user-hub-card">
+              <h2>💳 Payments</h2>
+              <Link className="primary-link" to="/user/payments">
+                View Payments
+              </Link>
+            </section>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
+
+function UserEditPage({ isLoggedIn, onLogout, authToken }) {
+  const [formData, setFormData] = useState({
+    first_name: "",
+    last_name: "",
+    phone: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const response = await fetch(`${API_URL}/user`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        if (!response.ok) throw new Error("Failed to fetch user data");
+        const user = await response.json();
+        setFormData({
+          first_name: user.first_name || "",
+          last_name: user.last_name || "",
+          phone: user.phone || "",
+        });
+      } catch (err) {
+        setError(err.message);
+      }
+    }
+    if (isLoggedIn && authToken) fetchUser();
+  }, [isLoggedIn, authToken]);
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await fetch(`${API_URL}/user`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) throw new Error("Failed to update profile");
+      setMessage("Profile updated successfully!");
+      setTimeout(() => navigate("/user"), 1500);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="page">
+      <TopPanel isLoggedIn={isLoggedIn} onLogout={onLogout} />
+      <SecondaryMenu isLoggedIn={isLoggedIn} />
+
+      <section className="auth-layout">
+        <h1>Edit Profile</h1>
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <label>
+            First name
+            <input
+              type="text"
+              value={formData.first_name}
+              onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+              required
+            />
+          </label>
+          <label>
+            Last name
+            <input
+              type="text"
+              value={formData.last_name}
+              onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+              required
+            />
+          </label>
+          <label>
+            Phone
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="+48123123123"
+            />
+          </label>
+          <button type="submit" className="primary-link auth-submit" disabled={loading}>
+            {loading ? "Saving..." : "Save Changes"}
+          </button>
+        </form>
+        {message && <p className="status-text">{message}</p>}
+        {error && <p className="status-text error-text">{error}</p>}
+      </section>
+    </main>
+  );
+}
+
+function UserRentalsPage({ isLoggedIn, onLogout, authToken }) {
+  const [rentals, setRentals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function fetchRentals() {
+      try {
+        const response = await fetch(`${API_URL}/user/rentals`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        if (!response.ok) throw new Error("Failed to fetch rentals");
+        setRentals(await response.json());
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (isLoggedIn && authToken) fetchRentals();
+  }, [isLoggedIn, authToken]);
+
+  return (
+    <main className="page">
+      <TopPanel isLoggedIn={isLoggedIn} onLogout={onLogout} />
+      <SecondaryMenu isLoggedIn={isLoggedIn} />
+
+      <div className="cars-layout">
+        <h1>Rental History</h1>
+        <Link className="back-link" to="/user">← Back</Link>
+
+        {loading && <p className="status-text">Loading rentals...</p>}
+        {error && <p className="status-text error-text">{error}</p>}
+        {!loading && rentals.length === 0 && <p className="status-text">No rentals found.</p>}
+
+        {rentals.length > 0 && (
+          <section className="cars-grid" style={{ marginTop: "24px" }}>
+            {rentals.map((rental) => (
+              <article className="car-card" key={rental.id}>
+                <h2>Rental #{rental.id}</h2>
+                <p><strong>Car:</strong> {rental.car?.brand} {rental.car?.model}</p>
+                <p><strong>Start:</strong> {rental.start_date}</p>
+                <p><strong>End:</strong> {rental.end_date}</p>
+                <p><strong>Status:</strong> {rental.status}</p>
+              </article>
+            ))}
+          </section>
+        )}
+      </div>
+    </main>
+  );
+}
+
+function UserPaymentsPage({ isLoggedIn, onLogout, authToken }) {
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function fetchPayments() {
+      try {
+        const response = await fetch(`${API_URL}/user/payments`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        if (!response.ok) throw new Error("Failed to fetch payments");
+        setPayments(await response.json());
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (isLoggedIn && authToken) fetchPayments();
+  }, [isLoggedIn, authToken]);
+
+  return (
+    <main className="page">
+      <TopPanel isLoggedIn={isLoggedIn} onLogout={onLogout} />
+      <SecondaryMenu isLoggedIn={isLoggedIn} />
+
+      <div className="cars-layout">
+        <h1>Payments</h1>
+        <Link className="back-link" to="/user">← Back</Link>
+
+        {loading && <p className="status-text">Loading payments...</p>}
+        {error && <p className="status-text error-text">{error}</p>}
+        {!loading && payments.length === 0 && <p className="status-text">No payments found.</p>}
+
+        {payments.length > 0 && (
+          <section className="cars-grid" style={{ marginTop: "24px" }}>
+            {payments.map((payment) => (
+              <article className="car-card" key={payment.id}>
+                <h2>Payment #{payment.id}</h2>
+                <p><strong>Amount:</strong> {payment.amount} zł</p>
+                <p><strong>Date:</strong> {payment.date}</p>
+                <p><strong>Status:</strong> {payment.status}</p>
+              </article>
+            ))}
+          </section>
+        )}
+      </div>
+    </main>
+  );
+}
+
+function SignUpPage({ isLoggedIn, onLogout }) {
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -327,7 +612,7 @@ function RegisterPage({ isLoggedIn, onLogout }) {
       <TopPanel isLoggedIn={isLoggedIn} onLogout={onLogout} />
 
       <section className="auth-layout">
-        <h1>Register</h1>
+        <h1>Sign up</h1>
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
@@ -367,6 +652,10 @@ function RegisterPage({ isLoggedIn, onLogout }) {
 
         {message && <p className="status-text">{message}</p>}
         {error && <p className="status-text error-text">{error}</p>}
+
+        <p className="auth-switch">
+          Already have an account? <Link to="/login">Login</Link>
+        </p>
       </section>
     </main>
   );
@@ -397,7 +686,12 @@ export default function App() {
       <Route path="/" element={<HomePage isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
       <Route path="/cars" element={isLoggedIn ? <CarsPage isLoggedIn={isLoggedIn} onLogout={handleLogout} /> : <Navigate to="/login" replace />} />
       <Route path="/login" element={isLoggedIn ? <Navigate to="/cars" replace /> : <LoginPage isLoggedIn={isLoggedIn} onLogin={handleLogin} onLogout={handleLogout} />} />
-      <Route path="/register" element={isLoggedIn ? <Navigate to="/cars" replace /> : <RegisterPage isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+      <Route path="/signup" element={isLoggedIn ? <Navigate to="/cars" replace /> : <SignUpPage isLoggedIn={isLoggedIn} onLogout={handleLogout} />} />
+      <Route path="/register" element={<Navigate to="/signup" replace />} />
+      <Route path="/user" element={isLoggedIn ? <UserHubPage isLoggedIn={isLoggedIn} onLogout={handleLogout} authToken={authToken} /> : <Navigate to="/login" replace />} />
+      <Route path="/user/edit" element={isLoggedIn ? <UserEditPage isLoggedIn={isLoggedIn} onLogout={handleLogout} authToken={authToken} /> : <Navigate to="/login" replace />} />
+      <Route path="/user/rentals" element={isLoggedIn ? <UserRentalsPage isLoggedIn={isLoggedIn} onLogout={handleLogout} authToken={authToken} /> : <Navigate to="/login" replace />} />
+      <Route path="/user/payments" element={isLoggedIn ? <UserPaymentsPage isLoggedIn={isLoggedIn} onLogout={handleLogout} authToken={authToken} /> : <Navigate to="/login" replace />} />
     </Routes>
   );
 }

@@ -5,7 +5,7 @@ from sqlalchemy import engine_from_config, pool
 from alembic import context
 
 from app.core.database import DATABASE_URL
-from app.models import Car, Customer, Discount, Location, Rental
+import app.models
 from app.models.base import Base
 
 config = context.config
