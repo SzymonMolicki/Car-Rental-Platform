@@ -19,6 +19,8 @@ app.include_router(admin_cars_router)
 app.include_router(admin_customers_router)
 app.include_router(admin_discounts_router)
 app.include_router(admin_rentals_router)
+app.include_router(customer_cars_router)
+app.include_router(customer_users_router)
 app.include_router(signup_router)
 
 

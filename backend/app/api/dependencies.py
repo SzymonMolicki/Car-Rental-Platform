@@ -22,3 +22,9 @@ def require_admin(payload: dict[str, Any] = Depends(get_current_payload)) -> dic
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
     return payload
+
+def require_customer(payload: dict[str, Any] = Depends(get_current_payload)) -> dict[str, Any]:
+    if payload.get("account_type") != "customer" or payload.get("role") == "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Customer access required")
+
+    return payload
