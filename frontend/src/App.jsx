@@ -1,111 +1,140 @@
-import { Link, Route, Routes } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { useState } from "react";
 
-function HomePage() {
-  return (
-    <main className="page">
-      <div className="home-layout">
-        <h1>MetroCars</h1>
-
-        <div className="hero-actions">
-          <Link className="primary-link" to="/cars">
-            Browse
-          </Link>
-        </div>
-      </div>
-    </main>
-  );
-}
-
-function CarsPage() {
-  const [cars, setCars] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    async function loadCars() {
-      try {
-        const response = await fetch("http://localhost:8000/cars");
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch cars");
-        }
-
-        const data = await response.json();
-        setCars(data);
-      } catch (err) {
-        setError("Could not load cars.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadCars();
-  }, []);
-
-  return (
-    <main className="page">
-      <div className="cars-layout">
-        <header className="cars-header">
-          <div className="topbar">
-            <Link className="back-link" to="/">
-              ← Home
-            </Link>
-          </div>
-
-          <p className="eyebrow">MetroCars</p>
-          <h1>Available cars</h1>
-          <p className="subtitle">
-            Browse the current fleet.
-          </p>
-        </header>
-
-        {loading && <p className="status-text">Loading cars...</p>}
-
-        {error && <p className="status-text error-text">{error}</p>}
-
-        {!loading && !error && cars.length === 0 && (
-          <p className="status-text">No cars found.</p>
-        )}
-
-        {!loading && !error && cars.length > 0 && (
-          <section className="cars-grid">
-            {cars.map((car) => (
-              <article className="car-card" key={car.id}>
-                <div className="car-card-top">
-                  <span className="car-status">{car.status}</span>
-                  <span className="car-year">{car.production_year}</span>
-                </div>
-
-                <h2>
-                  {car.brand} {car.model}
-                </h2>
-
-                <div className="car-details">
-                  <p>
-                    <span>Daily rate</span>
-                    <strong>{Number(car.daily_rate).toFixed(2)} zł</strong>
-                  </p>
-                  <p>
-                    <span>ID</span>
-                    <strong>{car.id}</strong>
-                  </p>
-                </div>
-              </article>
-            ))}
-          </section>
-        )}
-      </div>
-    </main>
-  );
-}
+import { AppRouteGuard, GuestRoute } from "./components/RouteGuards.jsx";
+import { clearStoredSession, getHomePath, getStoredSession, persistSession } from "./lib/auth.js";
+import AdminAddCouponPage from "./pages/admin/AdminAddCouponPage.jsx";
+import AdminCarsPage from "./pages/admin/AdminCarsPage.jsx";
+import AdminDashboardPage from "./pages/admin/AdminDashboardPage.jsx";
+import AdminReservationsPage from "./pages/admin/AdminReservationsPage.jsx";
+import AdminUsersPage from "./pages/admin/AdminUsersPage.jsx";
+import CarsPage from "./pages/CarsPage.jsx";
+import HomePage from "./pages/HomePage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import NotFoundPage from "./pages/NotFoundPage.jsx";
+import SignUpPage from "./pages/SignUpPage.jsx";
+import UserDashboardPage from "./pages/user/UserDashboardPage.jsx";
+import UserHistoryPage from "./pages/user/UserHistoryPage.jsx";
+import UserInfoPage from "./pages/user/UserInfoPage.jsx";
+import UserRentPaymentPage from "./pages/user/UserRentPaymentPage.jsx";
 
 export default function App() {
+  const [session, setSession] = useState(() => getStoredSession());
+
+  function handleLogin(token) {
+    const nextSession = persistSession(token);
+    setSession(nextSession);
+    return nextSession;
+  }
+
+  function handleLogout() {
+    clearStoredSession();
+    setSession(null);
+  }
+
+  const homePath = session ? getHomePath(session.role) : "/";
+
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/cars" element={<CarsPage />} />
+      <Route path="/" element={<HomePage session={session} onLogout={handleLogout} />} />
+      <Route
+        path="/login"
+        element={
+          <GuestRoute session={session} redirectTo={homePath}>
+            <LoginPage session={session} onLogin={handleLogin} onLogout={handleLogout} />
+          </GuestRoute>
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          <GuestRoute session={session} redirectTo={homePath}>
+            <SignUpPage session={session} onLogout={handleLogout} />
+          </GuestRoute>
+        }
+      />
+      <Route
+        path="/cars"
+        element={
+          <AppRouteGuard session={session} allowedRoles={["customer", "admin"]}>
+            <CarsPage session={session} onLogout={handleLogout} />
+          </AppRouteGuard>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <AppRouteGuard session={session} allowedRoles={["admin"]}>
+            <AdminDashboardPage session={session} onLogout={handleLogout} />
+          </AppRouteGuard>
+        }
+      />
+      <Route
+        path="/admin/cars"
+        element={
+          <AppRouteGuard session={session} allowedRoles={["admin"]}>
+            <AdminCarsPage session={session} onLogout={handleLogout} />
+          </AppRouteGuard>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <AppRouteGuard session={session} allowedRoles={["admin"]}>
+            <AdminUsersPage session={session} onLogout={handleLogout} />
+          </AppRouteGuard>
+        }
+      />
+      <Route
+        path="/admin/reservations"
+        element={
+          <AppRouteGuard session={session} allowedRoles={["admin"]}>
+            <AdminReservationsPage session={session} onLogout={handleLogout} />
+          </AppRouteGuard>
+        }
+      />
+      <Route
+        path="/admin/addcoupon"
+        element={
+          <AppRouteGuard session={session} allowedRoles={["admin"]}>
+            <AdminAddCouponPage session={session} onLogout={handleLogout} />
+          </AppRouteGuard>
+        }
+      />
+      <Route
+        path="/user"
+        element={
+          <AppRouteGuard session={session} allowedRoles={["customer"]}>
+            <UserDashboardPage session={session} onLogout={handleLogout} />
+          </AppRouteGuard>
+        }
+      />
+      <Route
+        path="/user/info"
+        element={
+          <AppRouteGuard session={session} allowedRoles={["customer"]}>
+            <UserInfoPage session={session} onLogout={handleLogout} />
+          </AppRouteGuard>
+        }
+      />
+      <Route
+        path="/user/history"
+        element={
+          <AppRouteGuard session={session} allowedRoles={["customer"]}>
+            <UserHistoryPage session={session} onLogout={handleLogout} />
+          </AppRouteGuard>
+        }
+      />
+      <Route
+        path="/user/rent/payment"
+        element={
+          <AppRouteGuard session={session} allowedRoles={["customer"]}>
+            <UserRentPaymentPage session={session} onLogout={handleLogout} />
+          </AppRouteGuard>
+        }
+      />
+      <Route path="/register" element={<Navigate to="/signup" replace />} />
+      <Route path="*" element={<NotFoundPage session={session} onLogout={handleLogout} />} />
     </Routes>
   );
 }
