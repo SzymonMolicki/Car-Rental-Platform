@@ -42,3 +42,11 @@ class RentalHistoryResponse(BaseModel):
     planned_end_date: datetime
     actual_end_date: datetime | None
     created_at: datetime
+
+
+class CarRentalRequest(BaseModel):
+    car_id: UUID
+    pickup_location_id: UUID
+    return_location_id: UUID
+    start_date: datetime
+    planned_end_date: datetime
