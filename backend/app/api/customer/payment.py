@@ -21,7 +21,7 @@ from app.schemas import InvoiceResponse, RentalPaymentRequest
 
 router = APIRouter(prefix="/rent", tags=["customer"])
 
-COMPLETED_PAYMENT_STATUS = "completed"
+COMPLETED_PAYMENT_STATUS = "paid"
 PAID_INVOICE_STATUS = "paid"
 
 
