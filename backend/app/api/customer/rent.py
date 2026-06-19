@@ -2,28 +2,29 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import or_, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_customer
 from app.core.database import get_db
 from app.models.car import Car
-from app.models.car_status import CarStatus
 from app.models.customer import Customer
 from app.models.rental import Rental
 from app.models.rental_status import RentalStatus
-from app.schemas import CarResponse, CarRentalRequest, RentalResponse
-from app.api.dependencies import get_current_customer
+from app.schemas import CarRentalRequest, RentalResponse
 
 
-router = APIRouter(prefix="/customer", tags=["customer"])
+router = APIRouter(tags=["customer"])
 
-AVAILABLE_CAR_STATUS = "available"
 BLOCKING_RENTAL_STATUSES = ("reserved", "active")
 DEFAULT_RENTAL_STATUS = "reserved"
 
 
 def _car_is_available(db: Session, car_id: UUID, start_date: datetime, planned_end_date: datetime) -> bool:
+    """A rental blocks the car for [start_date, effective_end), where effective_end
+    is the actual return time if known, otherwise the planned return time."""
+    effective_end = func.coalesce(Rental.actual_end_date, Rental.planned_end_date)
+
     conflict = db.execute(
         select(Rental.rental_id)
         .join(RentalStatus, Rental.rental_status_id == RentalStatus.rental_status_id)
@@ -31,37 +32,11 @@ def _car_is_available(db: Session, car_id: UUID, start_date: datetime, planned_e
             Rental.car_id == car_id,
             RentalStatus.name.in_(BLOCKING_RENTAL_STATUSES),
             Rental.start_date < planned_end_date,
-            or_(Rental.planned_end_date > start_date, Rental.actual_end_date.is_(None)),
+            effective_end > start_date,
         )
     ).first()
+
     return conflict is None
-
-
-@router.get("/cars", response_model=list[CarResponse])
-def get_available_cars(
-    start_date: datetime | None = None,
-    planned_end_date: datetime | None = None,
-    db: Session = Depends(get_db),
-) -> list[Car]:
-    """List cars currently marked available. If a date range is given, also
-    filters out cars with a reserved/active rental overlapping that range."""
-    cars = (
-        db.execute(
-            select(Car)
-            .join(CarStatus, Car.car_status_id == CarStatus.car_status_id)
-            .where(CarStatus.name == AVAILABLE_CAR_STATUS)
-        )
-        .scalars()
-        .all()
-    )
-
-    if start_date is None or planned_end_date is None:
-        return cars
-
-    if planned_end_date <= start_date:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="planned_end_date must be after start_date")
-
-    return [car for car in cars if _car_is_available(db, car.car_id, start_date, planned_end_date)]
 
 
 @router.post("/rent", response_model=RentalResponse, status_code=status.HTTP_201_CREATED)

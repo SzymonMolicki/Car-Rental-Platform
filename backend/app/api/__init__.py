@@ -6,7 +6,7 @@ from app.api.customer.cars import router as customer_cars_router
 from app.api.customer.users import router as customer_users_router
 from app.api.login import router as login_router
 from app.api.signup import router as signup_router
-from app.api.customer.rent import router as user_rentals_router
-from app.api.customer.payment import router as user_payment_router
+from app.api.customer.rent import router as customer_rentals_router
+from app.api.customer.payment import router as customer_payment_router
 
-__all__ = ["admin_cars_router", "admin_customers_router", "admin_discounts_router", "admin_rentals_router", "customer_cars_router", "customer_users_router", "login_router", "signup_router","user_rentals_router", "user_payment_router"]
+__all__ = ["admin_cars_router", "admin_customers_router", "admin_discounts_router", "admin_rentals_router", "customer_cars_router", "customer_users_router", "login_router", "signup_router", "customer_rentals_router", "customer_payment_router"]
