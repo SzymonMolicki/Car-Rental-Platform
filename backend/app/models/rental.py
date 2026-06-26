@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import DateTime, ForeignKey, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.time import utc_now
 from app.models.base import Base
 
 if TYPE_CHECKING:
@@ -23,6 +24,6 @@ class Rental(Base):
     start_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     planned_end_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     actual_end_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utc_now)
 
     rental_status: Mapped["RentalStatus"] = relationship(back_populates="rentals")

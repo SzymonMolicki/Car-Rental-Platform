@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, SmallInteger, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.time import utc_now
 from app.models.base import Base
 
 if TYPE_CHECKING:
@@ -34,8 +35,8 @@ class Car(Base):
     seats: Mapped[int] = mapped_column(SmallInteger, nullable=False)
     mileage: Mapped[int] = mapped_column(Integer, nullable=False)
     daily_rate: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utc_now, onupdate=utc_now)
 
     current_location: Mapped["Location"] = relationship()
     fuel_type: Mapped["FuelType"] = relationship(back_populates="cars")

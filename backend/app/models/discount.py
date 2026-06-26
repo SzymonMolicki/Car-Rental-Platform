@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import Boolean, DateTime, Numeric, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.time import utc_now
 from app.models.base import Base
 
 
@@ -18,4 +19,4 @@ class Discount(Base):
     valid_from: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     valid_to: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utc_now)

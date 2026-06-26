@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import Date, DateTime, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.core.time import utc_now
 from app.models.base import Base
 
 
@@ -20,5 +21,5 @@ class Customer(Base):
     date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)
     driver_license_no: Mapped[str | None] = mapped_column(String, nullable=True)
     license_expiry_date: Mapped[date | None] = mapped_column(Date, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utc_now, onupdate=utc_now)

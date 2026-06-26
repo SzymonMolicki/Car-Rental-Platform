@@ -1,4 +1,3 @@
-from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,19 +7,19 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import require_customer
 from app.core.database import get_db
+from app.core.time import utc_now
 from app.models.address import Address
 from app.models.car import Car
 from app.models.customer import Customer
 from app.models.invoice import Invoice
 from app.models.location import Location
 from app.models.rental import Rental
-from app.models.rental_status import RentalStatus
 from app.schemas import CustomerProfileResponse, CustomerProfileUpdate, RentalHistoryResponse
 from app.services.invoice.invoice_service import RentalInvoiceError, generate_rental_invoice_pdf
+from app.services.rental_lifecycle import apply_paid_rental_lifecycle_statuses, rental_status_names_by_id
 
 
 router = APIRouter(tags=["customer"], dependencies=[Depends(require_customer)])
-ACTIVE_RENTAL_STATUS = "active"
 
 
 def _ensure_own_profile(user_id: UUID, payload: dict) -> None:
@@ -62,27 +61,6 @@ def _profile_response(db: Session, customer: Customer) -> CustomerProfileRespons
     )
 
 
-def _sync_active_paid_rentals(db: Session, customer_id: UUID) -> None:
-    active_status = db.execute(select(RentalStatus).where(RentalStatus.name == ACTIVE_RENTAL_STATUS)).scalar_one_or_none()
-
-    if active_status is None:
-        return
-
-    now = datetime.now()
-    rentals = (db.execute(select(Rental).join(Invoice, Rental.rental_id == Invoice.rental_id).where(Rental.customer_id == customer_id)).scalars().all())
-    changed = False
-
-    for rental in rentals:
-        effective_end = rental.actual_end_date or rental.planned_end_date
-
-        if rental.start_date <= now < effective_end and rental.rental_status_id != active_status.rental_status_id:
-            rental.rental_status_id = active_status.rental_status_id
-            changed = True
-
-    if changed:
-        db.commit()
-
-
 @router.get("/user/{user_id}", response_model=CustomerProfileResponse)
 def get_profile(user_id: UUID, db: Session = Depends(get_db), payload: dict = Depends(require_customer)) -> CustomerProfileResponse:
     _ensure_own_profile(user_id, payload)
@@ -114,7 +92,7 @@ def update_profile(user_id: UUID, profile_data: CustomerProfileUpdate, db: Sessi
     for field in address_fields & update_data.keys():
         setattr(address, field, update_data[field])
 
-    customer.updated_at = datetime.now()
+    customer.updated_at = utc_now()
     db.commit()
     db.refresh(customer)
 
@@ -150,7 +128,6 @@ def delete_profile(user_id: UUID, db: Session = Depends(get_db), payload: dict =
 def get_rental_history(user_id: UUID, db: Session = Depends(get_db), payload: dict = Depends(require_customer)) -> list[RentalHistoryResponse]:
     _ensure_own_profile(user_id, payload)
     _get_customer_or_404(db, user_id)
-    _sync_active_paid_rentals(db, user_id)
 
     pickup_location = Location.__table__.alias("pickup_location")
     return_location = Location.__table__.alias("return_location")
@@ -160,12 +137,10 @@ def get_rental_history(user_id: UUID, db: Session = Depends(get_db), payload: di
             Car.brand,
             Car.model,
             Car.plate_number,
-            RentalStatus.name.label("status_name"),
             pickup_location.c.name.label("pickup_location_name"),
             return_location.c.name.label("return_location_name"),
         )
         .join(Car, Rental.car_id == Car.car_id)
-        .join(RentalStatus, Rental.rental_status_id == RentalStatus.rental_status_id)
         .join(pickup_location, Rental.pickup_location_id == pickup_location.c.location_id)
         .join(return_location, Rental.return_location_id == return_location.c.location_id)
         .where(Rental.customer_id == user_id)
@@ -173,6 +148,9 @@ def get_rental_history(user_id: UUID, db: Session = Depends(get_db), payload: di
     ).all()
     rental_ids = [rental.rental_id for rental, *_ in rows]
     invoiced_rental_ids = set(db.execute(select(Invoice.rental_id).where(Invoice.rental_id.in_(rental_ids))).scalars().all()) if rental_ids else set()
+    rentals = [rental for rental, *_ in rows]
+    status_names_by_id = rental_status_names_by_id(db)
+    apply_paid_rental_lifecycle_statuses(db, rentals)
 
     return [
         RentalHistoryResponse(
@@ -180,7 +158,7 @@ def get_rental_history(user_id: UUID, db: Session = Depends(get_db), payload: di
             car_id=rental.car_id,
             car=f"{brand} {model}",
             plate_number=plate_number,
-            status=status_name,
+            status=status_names_by_id.get(rental.rental_status_id, "unknown"),
             has_invoice=rental.rental_id in invoiced_rental_ids,
             pickup_location=pickup_location_name,
             return_location=return_location_name,
@@ -189,7 +167,7 @@ def get_rental_history(user_id: UUID, db: Session = Depends(get_db), payload: di
             actual_end_date=rental.actual_end_date,
             created_at=rental.created_at
         )
-        for rental, brand, model, plate_number, status_name, pickup_location_name, return_location_name in rows
+        for rental, brand, model, plate_number, pickup_location_name, return_location_name in rows
     ]
 
 

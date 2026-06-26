@@ -4,10 +4,12 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_customer
 from app.core.database import get_db
+from app.core.time import utc_now
 from app.models.car import Car
 from app.models.customer import Customer
 from app.models.discount import Discount
@@ -16,15 +18,14 @@ from app.models.invoice_status import InvoiceStatus
 from app.models.payment_method import PaymentMethod
 from app.models.payment_status import PaymentStatus
 from app.models.rental import Rental
-from app.models.rental_status import RentalStatus
 from app.schemas import InvoiceResponse, RentalPaymentRequest
+from app.services.rental_lifecycle import apply_paid_rental_lifecycle_status
 
 
 router = APIRouter(prefix="/rent", tags=["customer"])
 
 COMPLETED_PAYMENT_STATUS = "paid"
 PAID_INVOICE_STATUS = "paid"
-ACTIVE_RENTAL_STATUS = "active"
 
 
 def _get_lookup_by_name(db: Session, model: type[Any], name: str, label: str) -> Any:
@@ -36,12 +37,11 @@ def _get_lookup_by_name(db: Session, model: type[Any], name: str, label: str) ->
     return item
 
 
-def _activate_rental_if_current(db: Session, rental: Rental, now: datetime) -> None:
-    effective_end = rental.actual_end_date or rental.planned_end_date
-
-    if rental.start_date <= now < effective_end:
-        active_status = _get_lookup_by_name(db, RentalStatus, ACTIVE_RENTAL_STATUS, "rental status")
-        rental.rental_status_id = active_status.rental_status_id
+def _mark_invoice_paid(invoice: Invoice, *, payment_method: PaymentMethod, paid_status: PaymentStatus, paid_invoice_status: InvoiceStatus, now: datetime) -> None:
+    invoice.payment_method_id = payment_method.payment_method_id
+    invoice.payment_status_id = paid_status.payment_status_id
+    invoice.invoice_status_id = paid_invoice_status.invoice_status_id
+    invoice.paid_at = invoice.paid_at or now
 
 
 @router.post("/payment", response_model=InvoiceResponse)
@@ -63,17 +63,14 @@ def pay_for_rental(
     if payment_method is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment method not found")
 
-    now = datetime.now()
+    now = utc_now()
     paid_status = _get_lookup_by_name(db, PaymentStatus, COMPLETED_PAYMENT_STATUS, "payment status")
     paid_invoice_status = _get_lookup_by_name(db, InvoiceStatus, PAID_INVOICE_STATUS, "invoice status")
     existing_invoice = db.execute(select(Invoice).where(Invoice.rental_id == rental.rental_id)).scalar_one_or_none()
-    _activate_rental_if_current(db, rental, now)
+    apply_paid_rental_lifecycle_status(db, rental, now=now)
 
     if existing_invoice is not None:
-        existing_invoice.payment_method_id = payment_method.payment_method_id
-        existing_invoice.payment_status_id = paid_status.payment_status_id
-        existing_invoice.invoice_status_id = paid_invoice_status.invoice_status_id
-        existing_invoice.paid_at = existing_invoice.paid_at or now
+        _mark_invoice_paid(existing_invoice, payment_method=payment_method, paid_status=paid_status, paid_invoice_status=paid_invoice_status, now=now)
         db.commit()
         db.refresh(existing_invoice)
         response.status_code = status.HTTP_200_OK
@@ -114,7 +111,25 @@ def pay_for_rental(
     )
 
     db.add(invoice)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        existing_invoice = db.execute(select(Invoice).where(Invoice.rental_id == payload.rental_id)).scalar_one_or_none()
+
+        if existing_invoice is None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Payment could not be completed. Please try again.") from exc
+
+        rental = db.get(Rental, payload.rental_id)
+        if rental is not None:
+            apply_paid_rental_lifecycle_status(db, rental, now=now)
+
+        _mark_invoice_paid(existing_invoice, payment_method=payment_method, paid_status=paid_status, paid_invoice_status=paid_invoice_status, now=now)
+        db.commit()
+        db.refresh(existing_invoice)
+        response.status_code = status.HTTP_200_OK
+        return existing_invoice
+
     db.refresh(invoice)
     response.status_code = status.HTTP_201_CREATED
 

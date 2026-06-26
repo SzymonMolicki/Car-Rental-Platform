@@ -1,4 +1,3 @@
-from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -7,6 +6,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.dependencies import require_admin
 from app.core.database import get_db
+from app.core.time import utc_now
 from app.models.car import Car
 from app.models.car_status import CarStatus
 from app.models.car_type import CarType
@@ -83,7 +83,7 @@ def update_car(car_id: UUID, car_data: CarUpdate, db: Session = Depends(get_db))
     for field, value in update_data.items():
         setattr(car, field, value)
 
-    car.updated_at = datetime.now()
+    car.updated_at = utc_now()
 
     db.commit()
 
