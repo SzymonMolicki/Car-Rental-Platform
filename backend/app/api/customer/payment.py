@@ -1,8 +1,8 @@
 from datetime import datetime
 from decimal import Decimal
-from uuid import UUID
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -16,6 +16,7 @@ from app.models.invoice_status import InvoiceStatus
 from app.models.payment_method import PaymentMethod
 from app.models.payment_status import PaymentStatus
 from app.models.rental import Rental
+from app.models.rental_status import RentalStatus
 from app.schemas import InvoiceResponse, RentalPaymentRequest
 
 
@@ -23,21 +24,36 @@ router = APIRouter(prefix="/rent", tags=["customer"])
 
 COMPLETED_PAYMENT_STATUS = "paid"
 PAID_INVOICE_STATUS = "paid"
+ACTIVE_RENTAL_STATUS = "active"
 
 
-@router.post("/payment", response_model=InvoiceResponse, status_code=status.HTTP_201_CREATED)
+def _get_lookup_by_name(db: Session, model: type[Any], name: str, label: str) -> Any:
+    item = db.execute(select(model).where(model.name == name)).scalar_one_or_none()
+
+    if item is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Missing {label} lookup value: {name}")
+
+    return item
+
+
+def _activate_rental_if_current(db: Session, rental: Rental, now: datetime) -> None:
+    effective_end = rental.actual_end_date or rental.planned_end_date
+
+    if rental.start_date <= now < effective_end:
+        active_status = _get_lookup_by_name(db, RentalStatus, ACTIVE_RENTAL_STATUS, "rental status")
+        rental.rental_status_id = active_status.rental_status_id
+
+
+@router.post("/payment", response_model=InvoiceResponse)
 def pay_for_rental(
     payload: RentalPaymentRequest,
+    response: Response,
     current_customer: Customer = Depends(get_current_customer),
     db: Session = Depends(get_db),
 ) -> Invoice:
     rental = db.get(Rental, payload.rental_id)
     if rental is None or rental.customer_id != current_customer.customer_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rental not found")
-
-    existing_invoice = db.execute(select(Invoice).where(Invoice.rental_id == rental.rental_id)).scalar_one_or_none()
-    if existing_invoice is not None:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This rental has already been invoiced")
 
     car = db.get(Car, rental.car_id)
     if car is None:
@@ -46,6 +62,22 @@ def pay_for_rental(
     payment_method = db.get(PaymentMethod, payload.payment_method_id)
     if payment_method is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment method not found")
+
+    now = datetime.now()
+    paid_status = _get_lookup_by_name(db, PaymentStatus, COMPLETED_PAYMENT_STATUS, "payment status")
+    paid_invoice_status = _get_lookup_by_name(db, InvoiceStatus, PAID_INVOICE_STATUS, "invoice status")
+    existing_invoice = db.execute(select(Invoice).where(Invoice.rental_id == rental.rental_id)).scalar_one_or_none()
+    _activate_rental_if_current(db, rental, now)
+
+    if existing_invoice is not None:
+        existing_invoice.payment_method_id = payment_method.payment_method_id
+        existing_invoice.payment_status_id = paid_status.payment_status_id
+        existing_invoice.invoice_status_id = paid_invoice_status.invoice_status_id
+        existing_invoice.paid_at = existing_invoice.paid_at or now
+        db.commit()
+        db.refresh(existing_invoice)
+        response.status_code = status.HTTP_200_OK
+        return existing_invoice
 
     nights = max((rental.planned_end_date.date() - rental.start_date.date()).days, 1)
     base_amount = (car.daily_rate * nights).quantize(Decimal("0.01"))
@@ -59,7 +91,6 @@ def pay_for_rental(
         if discount is None or not discount.is_active:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or inactive discount code")
 
-        now = datetime.now()
         if discount.valid_from and now < discount.valid_from:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Discount code is not yet valid")
         if discount.valid_to and now > discount.valid_to:
@@ -68,9 +99,6 @@ def pay_for_rental(
         discount_amount = (base_amount * discount.percent_value / Decimal("100")).quantize(Decimal("0.01"))
         discount_id = discount.discount_id
 
-    paid_status = db.execute(select(PaymentStatus).where(PaymentStatus.name == COMPLETED_PAYMENT_STATUS)).scalar_one()
-    paid_invoice_status = db.execute(select(InvoiceStatus).where(InvoiceStatus.name == PAID_INVOICE_STATUS)).scalar_one()
-
     invoice = Invoice(
         rental_id=rental.rental_id,
         discount_id=discount_id,
@@ -78,15 +106,16 @@ def pay_for_rental(
         payment_method_id=payload.payment_method_id,
         payment_status_id=paid_status.payment_status_id,
         invoice_number=f"INV-{rental.rental_id.hex[:8].upper()}",
-        invoice_issue_date=datetime.now().date(),
+        invoice_issue_date=now.date(),
         base_amount=base_amount,
         discount_amount=discount_amount,
         total_amount=base_amount - discount_amount,
-        paid_at=datetime.now(),
+        paid_at=now,
     )
 
     db.add(invoice)
     db.commit()
     db.refresh(invoice)
+    response.status_code = status.HTTP_201_CREATED
 
     return invoice

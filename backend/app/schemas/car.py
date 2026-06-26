@@ -38,6 +38,12 @@ class CarUpdate(BaseModel):
     daily_rate: float | None = None
 
 
+class NamedReferenceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+
+
 class CarResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -58,3 +64,8 @@ class CarResponse(BaseModel):
     daily_rate: float
     created_at: datetime
     updated_at: datetime
+    current_location: NamedReferenceResponse | None = None
+    fuel_type: NamedReferenceResponse | None = None
+    transmission: NamedReferenceResponse | None = None
+    car_type: NamedReferenceResponse | None = None
+    car_status: NamedReferenceResponse | None = None

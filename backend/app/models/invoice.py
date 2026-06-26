@@ -1,11 +1,17 @@
 from datetime import date, datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, Uuid
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.invoice_status import InvoiceStatus
+    from app.models.payment_method import PaymentMethod
+    from app.models.payment_status import PaymentStatus
 
 
 class Invoice(Base):
@@ -24,3 +30,7 @@ class Invoice(Base):
     total_amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     paid_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
+
+    invoice_status: Mapped["InvoiceStatus"] = relationship(back_populates="invoices")
+    payment_method: Mapped["PaymentMethod | None"] = relationship(back_populates="invoices")
+    payment_status: Mapped["PaymentStatus"] = relationship(back_populates="invoices")

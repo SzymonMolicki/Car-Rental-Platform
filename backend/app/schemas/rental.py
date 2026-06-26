@@ -36,6 +36,7 @@ class RentalHistoryResponse(BaseModel):
     car: str
     plate_number: str
     status: str
+    has_invoice: bool
     pickup_location: str
     return_location: str
     start_date: datetime

@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -15,9 +16,11 @@ from app.models.location import Location
 from app.models.rental import Rental
 from app.models.rental_status import RentalStatus
 from app.schemas import CustomerProfileResponse, CustomerProfileUpdate, RentalHistoryResponse
+from app.services.invoice.invoice_service import RentalInvoiceError, generate_rental_invoice_pdf
 
 
 router = APIRouter(tags=["customer"], dependencies=[Depends(require_customer)])
+ACTIVE_RENTAL_STATUS = "active"
 
 
 def _ensure_own_profile(user_id: UUID, payload: dict) -> None:
@@ -57,6 +60,27 @@ def _profile_response(db: Session, customer: Customer) -> CustomerProfileRespons
         postal_code=address.postal_code,
         country=address.country
     )
+
+
+def _sync_active_paid_rentals(db: Session, customer_id: UUID) -> None:
+    active_status = db.execute(select(RentalStatus).where(RentalStatus.name == ACTIVE_RENTAL_STATUS)).scalar_one_or_none()
+
+    if active_status is None:
+        return
+
+    now = datetime.now()
+    rentals = (db.execute(select(Rental).join(Invoice, Rental.rental_id == Invoice.rental_id).where(Rental.customer_id == customer_id)).scalars().all())
+    changed = False
+
+    for rental in rentals:
+        effective_end = rental.actual_end_date or rental.planned_end_date
+
+        if rental.start_date <= now < effective_end and rental.rental_status_id != active_status.rental_status_id:
+            rental.rental_status_id = active_status.rental_status_id
+            changed = True
+
+    if changed:
+        db.commit()
 
 
 @router.get("/user/{user_id}", response_model=CustomerProfileResponse)
@@ -126,6 +150,7 @@ def delete_profile(user_id: UUID, db: Session = Depends(get_db), payload: dict =
 def get_rental_history(user_id: UUID, db: Session = Depends(get_db), payload: dict = Depends(require_customer)) -> list[RentalHistoryResponse]:
     _ensure_own_profile(user_id, payload)
     _get_customer_or_404(db, user_id)
+    _sync_active_paid_rentals(db, user_id)
 
     pickup_location = Location.__table__.alias("pickup_location")
     return_location = Location.__table__.alias("return_location")
@@ -146,6 +171,8 @@ def get_rental_history(user_id: UUID, db: Session = Depends(get_db), payload: di
         .where(Rental.customer_id == user_id)
         .order_by(Rental.start_date.desc())
     ).all()
+    rental_ids = [rental.rental_id for rental, *_ in rows]
+    invoiced_rental_ids = set(db.execute(select(Invoice.rental_id).where(Invoice.rental_id.in_(rental_ids))).scalars().all()) if rental_ids else set()
 
     return [
         RentalHistoryResponse(
@@ -154,6 +181,7 @@ def get_rental_history(user_id: UUID, db: Session = Depends(get_db), payload: di
             car=f"{brand} {model}",
             plate_number=plate_number,
             status=status_name,
+            has_invoice=rental.rental_id in invoiced_rental_ids,
             pickup_location=pickup_location_name,
             return_location=return_location_name,
             start_date=rental.start_date,
@@ -163,3 +191,19 @@ def get_rental_history(user_id: UUID, db: Session = Depends(get_db), payload: di
         )
         for rental, brand, model, plate_number, status_name, pickup_location_name, return_location_name in rows
     ]
+
+
+@router.get("/user/{user_id}/history/{rental_id}/invoice", response_class=StreamingResponse, responses={200: {"content": {"application/pdf": {}}}})
+def download_customer_rental_invoice(user_id: UUID, rental_id: UUID, db: Session = Depends(get_db), payload: dict = Depends(require_customer)) -> StreamingResponse:
+    _ensure_own_profile(user_id, payload)
+    rental = db.get(Rental, rental_id)
+
+    if rental is None or rental.customer_id != user_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rental not found")
+
+    try:
+        invoice_file = generate_rental_invoice_pdf(db, rental_id)
+    except RentalInvoiceError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=exc.detail) from exc
+
+    return StreamingResponse(iter([invoice_file.content]), media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{invoice_file.filename}"'})

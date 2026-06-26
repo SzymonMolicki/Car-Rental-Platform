@@ -1,11 +1,19 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, SmallInteger, String, Uuid
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.car_status import CarStatus
+    from app.models.car_type import CarType
+    from app.models.fuel_type import FuelType
+    from app.models.location import Location
+    from app.models.transmission import Transmission
 
 
 class Car(Base):
@@ -28,3 +36,9 @@ class Car(Base):
     daily_rate: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
+
+    current_location: Mapped["Location"] = relationship()
+    fuel_type: Mapped["FuelType"] = relationship(back_populates="cars")
+    transmission: Mapped["Transmission"] = relationship(back_populates="cars")
+    car_type: Mapped["CarType"] = relationship(back_populates="cars")
+    car_status: Mapped["CarStatus"] = relationship(back_populates="cars")

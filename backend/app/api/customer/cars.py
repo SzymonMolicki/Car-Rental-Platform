@@ -2,7 +2,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.api.customer.rent import _car_is_available
 from app.api.dependencies import require_customer
@@ -16,6 +16,7 @@ router = APIRouter(tags=["customer"], dependencies=[Depends(require_customer)])
 
 AVAILABLE_CAR_STATUS = "available"
 EXCLUDED_CAR_STATUSES = ("maintenance", "unavailable")
+CAR_RELATION_OPTIONS = (selectinload(Car.current_location), selectinload(Car.fuel_type), selectinload(Car.transmission), selectinload(Car.car_type), selectinload(Car.car_status))
 
 
 @router.get("/cars", response_model=list[CarResponse])
@@ -31,6 +32,7 @@ def get_available_cars(
         return (
             db.execute(
                 select(Car)
+                .options(*CAR_RELATION_OPTIONS)
                 .join(CarStatus, Car.car_status_id == CarStatus.car_status_id)
                 .where(CarStatus.name == AVAILABLE_CAR_STATUS)
             )
@@ -44,16 +46,12 @@ def get_available_cars(
     all_cars = (
         db.execute(
             select(Car)
+            .options(*CAR_RELATION_OPTIONS)
             .join(CarStatus, Car.car_status_id == CarStatus.car_status_id)
             .where(CarStatus.name.notin_(EXCLUDED_CAR_STATUSES))
         )
         .scalars()
         .all()
     )
-
-    print("All cars:\n")
-    for car in all_cars:
-        available = _car_is_available(db, car.car_id, start_date, planned_end_date)
-        print(car.car_id, car.brand, car.model, available)
 
     return [car for car in all_cars if _car_is_available(db, car.car_id, start_date, planned_end_date)]

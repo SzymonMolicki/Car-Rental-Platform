@@ -1,10 +1,14 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime, ForeignKey, Uuid
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
+
+if TYPE_CHECKING:
+    from app.models.rental_status import RentalStatus
 
 
 class Rental(Base):
@@ -20,3 +24,5 @@ class Rental(Base):
     planned_end_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     actual_end_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
+
+    rental_status: Mapped["RentalStatus"] = relationship(back_populates="rentals")
