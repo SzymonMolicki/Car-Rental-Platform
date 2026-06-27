@@ -16,6 +16,7 @@ ACTIVE_STATUS = "active"
 COMPLETED_STATUS = "completed"
 CANCELLED_STATUS = "cancelled"
 PAID_PAYMENT_STATUS = "paid"
+UNPAID_RENTAL_STATUSES = (RESERVED_STATUS, ACTIVE_STATUS)
 RESERVATION_HOLD_MINUTES = 5
 
 
@@ -91,5 +92,39 @@ def apply_paid_rental_lifecycle_statuses(db: Session, rentals: list[Rental], *, 
             continue
 
         changed = apply_paid_rental_lifecycle_status(db, rental, now=now, statuses_by_name=statuses_by_name, status_names_by_id=status_names_by_id) or changed
+
+    return changed
+
+
+def cancel_unpaid_rentals_for_available_car(db: Session, car_id: UUID) -> bool:
+    statuses_by_name = _rental_statuses_by_name(db)
+    cancelled_status = statuses_by_name.get(CANCELLED_STATUS)
+
+    if cancelled_status is None:
+        raise RuntimeError(f"Missing rental status lookup value: {CANCELLED_STATUS}")
+
+    target_status_ids = [
+        statuses_by_name[name].rental_status_id
+        for name in UNPAID_RENTAL_STATUSES
+        if name in statuses_by_name
+    ]
+
+    if not target_status_ids:
+        return False
+
+    rentals = db.execute(select(Rental).where(Rental.car_id == car_id, Rental.rental_status_id.in_(target_status_ids))).scalars().all()
+
+    if not rentals:
+        return False
+
+    paid_ids = _paid_rental_ids(db, [rental.rental_id for rental in rentals])
+    changed = False
+
+    for rental in rentals:
+        if rental.rental_id in paid_ids or rental.rental_status_id == cancelled_status.rental_status_id:
+            continue
+
+        rental.rental_status_id = cancelled_status.rental_status_id
+        changed = True
 
     return changed

@@ -10,13 +10,14 @@ from app.core.database import get_db
 from app.core.time import utc_now
 from app.models.address import Address
 from app.models.car import Car
+from app.models.car_status import CarStatus
 from app.models.customer import Customer
 from app.models.invoice import Invoice
 from app.models.location import Location
 from app.models.rental import Rental
 from app.schemas import CustomerProfileResponse, CustomerProfileUpdate, RentalHistoryResponse
 from app.services.invoice.invoice_service import RentalInvoiceError, generate_rental_invoice_pdf
-from app.services.rental_lifecycle import apply_paid_rental_lifecycle_statuses, rental_status_names_by_id
+from app.services.rental_lifecycle import apply_paid_rental_lifecycle_statuses, cancel_unpaid_rentals_for_available_car, rental_status_names_by_id
 
 
 router = APIRouter(tags=["customer"], dependencies=[Depends(require_customer)])
@@ -137,20 +138,53 @@ def get_rental_history(user_id: UUID, db: Session = Depends(get_db), payload: di
             Car.brand,
             Car.model,
             Car.plate_number,
+            CarStatus.name.label("car_status_name"),
             pickup_location.c.name.label("pickup_location_name"),
             return_location.c.name.label("return_location_name"),
         )
         .join(Car, Rental.car_id == Car.car_id)
+        .join(CarStatus, Car.car_status_id == CarStatus.car_status_id)
         .join(pickup_location, Rental.pickup_location_id == pickup_location.c.location_id)
         .join(return_location, Rental.return_location_id == return_location.c.location_id)
         .where(Rental.customer_id == user_id)
         .order_by(Rental.start_date.desc())
     ).all()
+
+    available_car_ids = {
+        rental.car_id
+        for rental, _, _, _, car_status_name, _, _ in rows
+        if car_status_name == "available"
+    }
+
+    if available_car_ids:
+        for car_id in available_car_ids:
+            if cancel_unpaid_rentals_for_available_car(db, car_id):
+                db.commit()
+
+        # Refresh rental objects after possible cancellation
+        rows = db.execute(
+            select(
+                Rental,
+                Car.brand,
+                Car.model,
+                Car.plate_number,
+                CarStatus.name.label("car_status_name"),
+                pickup_location.c.name.label("pickup_location_name"),
+                return_location.c.name.label("return_location_name"),
+            )
+            .join(Car, Rental.car_id == Car.car_id)
+            .join(CarStatus, Car.car_status_id == CarStatus.car_status_id)
+            .join(pickup_location, Rental.pickup_location_id == pickup_location.c.location_id)
+            .join(return_location, Rental.return_location_id == return_location.c.location_id)
+            .where(Rental.customer_id == user_id)
+            .order_by(Rental.start_date.desc())
+        ).all()
+
     rental_ids = [rental.rental_id for rental, *_ in rows]
     invoiced_rental_ids = set(db.execute(select(Invoice.rental_id).where(Invoice.rental_id.in_(rental_ids))).scalars().all()) if rental_ids else set()
     rentals = [rental for rental, *_ in rows]
-    status_names_by_id = rental_status_names_by_id(db)
     apply_paid_rental_lifecycle_statuses(db, rentals)
+    status_names_by_id = rental_status_names_by_id(db)
 
     return [
         RentalHistoryResponse(
@@ -167,7 +201,7 @@ def get_rental_history(user_id: UUID, db: Session = Depends(get_db), payload: di
             actual_end_date=rental.actual_end_date,
             created_at=rental.created_at
         )
-        for rental, brand, model, plate_number, pickup_location_name, return_location_name in rows
+        for rental, brand, model, plate_number, _, pickup_location_name, return_location_name in rows
     ]
 
 

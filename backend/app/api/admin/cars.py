@@ -14,6 +14,7 @@ from app.models.fuel_type import FuelType
 from app.models.location import Location
 from app.models.transmission import Transmission
 from app.schemas import CarCreate, CarResponse, CarUpdate
+from app.services.rental_lifecycle import cancel_unpaid_rentals_for_available_car
 
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -85,6 +86,15 @@ def update_car(car_id: UUID, car_data: CarUpdate, db: Session = Depends(get_db))
 
     car.updated_at = utc_now()
 
+    should_cancel_unpaid_rentals = False
+    if "car_status_id" in update_data:
+        available_status = db.execute(select(CarStatus).where(CarStatus.name == "available")).scalar_one_or_none()
+        should_cancel_unpaid_rentals = available_status is not None and car.car_status_id == available_status.car_status_id
+
     db.commit()
+
+    if should_cancel_unpaid_rentals:
+        cancel_unpaid_rentals_for_available_car(db, car.car_id)
+        db.commit()
 
     return _get_car_or_404(db, car_id)
