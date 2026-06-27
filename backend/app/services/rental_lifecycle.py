@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from sqlalchemy import select
@@ -16,6 +16,7 @@ ACTIVE_STATUS = "active"
 COMPLETED_STATUS = "completed"
 CANCELLED_STATUS = "cancelled"
 PAID_PAYMENT_STATUS = "paid"
+RESERVATION_HOLD_MINUTES = 5
 
 
 class RentalLifecycleConfigurationError(RuntimeError):
@@ -38,6 +39,10 @@ def _paid_rental_ids(db: Session, rental_ids: list[UUID]) -> set[UUID]:
 
     return set(
         db.execute(select(Invoice.rental_id).join(PaymentStatus, Invoice.payment_status_id == PaymentStatus.payment_status_id).where(Invoice.rental_id.in_(rental_ids), PaymentStatus.name == PAID_PAYMENT_STATUS)).scalars().all())
+
+
+def is_reservation_hold_active(*, created_at: datetime, now: datetime, hold_minutes: int = RESERVATION_HOLD_MINUTES) -> bool:
+    return created_at <= now < created_at + timedelta(minutes=hold_minutes)
 
 
 def _target_status_name(rental: Rental, now: datetime) -> str:

@@ -18,8 +18,9 @@ from app.models.invoice_status import InvoiceStatus
 from app.models.payment_method import PaymentMethod
 from app.models.payment_status import PaymentStatus
 from app.models.rental import Rental
+from app.models.rental_status import RentalStatus
 from app.schemas import InvoiceResponse, RentalPaymentRequest
-from app.services.rental_lifecycle import apply_paid_rental_lifecycle_status
+from app.services.rental_lifecycle import apply_paid_rental_lifecycle_status, is_reservation_hold_active
 
 
 router = APIRouter(prefix="/rent", tags=["customer"])
@@ -64,15 +65,23 @@ def pay_for_rental(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment method not found")
 
     now = utc_now()
+    if not is_reservation_hold_active(created_at=rental.created_at, now=now):
+        cancelled_status = _get_lookup_by_name(db, RentalStatus, "cancelled", "rental status")
+        if rental.rental_status_id != cancelled_status.rental_status_id:
+            rental.rental_status_id = cancelled_status.rental_status_id
+            db.commit()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Reservation expired. Please create a new reservation.")
+
     paid_status = _get_lookup_by_name(db, PaymentStatus, COMPLETED_PAYMENT_STATUS, "payment status")
     paid_invoice_status = _get_lookup_by_name(db, InvoiceStatus, PAID_INVOICE_STATUS, "invoice status")
     existing_invoice = db.execute(select(Invoice).where(Invoice.rental_id == rental.rental_id)).scalar_one_or_none()
-    apply_paid_rental_lifecycle_status(db, rental, now=now)
 
     if existing_invoice is not None:
         _mark_invoice_paid(existing_invoice, payment_method=payment_method, paid_status=paid_status, paid_invoice_status=paid_invoice_status, now=now)
         db.commit()
         db.refresh(existing_invoice)
+        apply_paid_rental_lifecycle_status(db, rental, now=now)
+        db.commit()
         response.status_code = status.HTTP_200_OK
         return existing_invoice
 
@@ -120,17 +129,17 @@ def pay_for_rental(
         if existing_invoice is None:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Payment could not be completed. Please try again.") from exc
 
-        rental = db.get(Rental, payload.rental_id)
-        if rental is not None:
-            apply_paid_rental_lifecycle_status(db, rental, now=now)
-
         _mark_invoice_paid(existing_invoice, payment_method=payment_method, paid_status=paid_status, paid_invoice_status=paid_invoice_status, now=now)
         db.commit()
         db.refresh(existing_invoice)
+        apply_paid_rental_lifecycle_status(db, rental, now=now)
+        db.commit()
         response.status_code = status.HTTP_200_OK
         return existing_invoice
 
     db.refresh(invoice)
+    apply_paid_rental_lifecycle_status(db, rental, now=now)
+    db.commit()
     response.status_code = status.HTTP_201_CREATED
 
     return invoice
