@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, Numeric, String, Uuid
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Numeric, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.time import utc_now
@@ -11,6 +11,12 @@ from app.models.base import Base
 
 class Discount(Base):
     __tablename__ = "discount"
+    __table_args__ = (
+        CheckConstraint("percent_value > 0 AND percent_value <= 100", name="ck_discount_percent_value_range"),
+        CheckConstraint("valid_from IS NULL OR valid_to IS NULL OR valid_from <= valid_to", name="ck_discount_valid_date_range"),
+        CheckConstraint("length(trim(name)) > 0", name="ck_discount_name_not_blank"),
+        CheckConstraint("length(trim(code)) > 0", name="ck_discount_code_not_blank")
+    )
 
     discount_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     name: Mapped[str] = mapped_column(String, nullable=False)

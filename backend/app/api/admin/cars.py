@@ -2,6 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.dependencies import require_admin
@@ -58,7 +59,11 @@ def create_car(car: CarCreate, db: Session = Depends(get_db)) -> Car:
 
     new_car = Car(**create_data)
     db.add(new_car)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="VIN or plate number already exists") from exc
 
     return _get_car_or_404(db, new_car.car_id)
 
@@ -91,7 +96,11 @@ def update_car(car_id: UUID, car_data: CarUpdate, db: Session = Depends(get_db))
         available_status = db.execute(select(CarStatus).where(CarStatus.name == "available")).scalar_one_or_none()
         should_cancel_unpaid_rentals = available_status is not None and car.car_status_id == available_status.car_status_id
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="VIN or plate number already exists") from exc
 
     if should_cancel_unpaid_rentals:
         cancel_unpaid_rentals_for_available_car(db, car.car_id)

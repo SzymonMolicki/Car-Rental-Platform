@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class CustomerResponse(BaseModel):
@@ -13,8 +13,8 @@ class CustomerResponse(BaseModel):
     last_name: str
     email: EmailStr
     phone: str
-    date_of_birth: date | None
-    driver_license_no: str | None
+    date_of_birth: date
+    driver_license_no: str
     license_expiry_date: date | None
     created_at: datetime
     updated_at: datetime
@@ -33,9 +33,18 @@ class CustomerProfileUpdate(BaseModel):
     email: EmailStr | None = None
     phone: str | None = Field(None, pattern=r"^\+?[0-9][0-9\s-]{7,20}$")
     date_of_birth: date | None = None
-    driver_license_no: str | None = Field(None, max_length=50)
+    driver_license_no: str | None = Field(None, min_length=1, max_length=50)
     license_expiry_date: date | None = None
     street: str | None = Field(None, min_length=1, max_length=100)
     city: str | None = Field(None, min_length=1, max_length=50)
     postal_code: str | None = Field(None, min_length=1, max_length=20)
     country: str | None = Field(None, min_length=1, max_length=50)
+
+    @field_validator("first_name", "last_name", "driver_license_no", "street", "city", "postal_code", "country", mode="before")
+    @classmethod
+    def strip_optional_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        if isinstance(value, str):
+            return value.strip()
+        return value

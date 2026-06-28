@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import require_customer
@@ -16,8 +17,9 @@ from app.models.invoice import Invoice
 from app.models.location import Location
 from app.models.rental import Rental
 from app.schemas import CustomerProfileResponse, CustomerProfileUpdate, RentalHistoryResponse
+from app.services.customer_validation import normalize_email, validate_customer_birth_date, validate_driver_license
 from app.services.invoice.invoice_service import RentalInvoiceError, generate_rental_invoice_pdf
-from app.services.rental_lifecycle import apply_paid_rental_lifecycle_statuses, cancel_unpaid_rentals_for_available_car, rental_status_names_by_id
+from app.services.rental_lifecycle import apply_paid_rental_lifecycle_statuses, expire_unpaid_reservation_holds, rental_status_names_by_id
 
 
 router = APIRouter(tags=["customer"], dependencies=[Depends(require_customer)])
@@ -81,8 +83,25 @@ def update_profile(user_id: UUID, profile_data: CustomerProfileUpdate, db: Sessi
     customer_fields = {"first_name", "last_name", "email", "phone", "date_of_birth", "driver_license_no", "license_expiry_date"}
     address_fields = {"street", "city", "postal_code", "country"}
 
+    if "email" in update_data:
+        update_data["email"] = normalize_email(update_data["email"])
+
+    date_of_birth = update_data.get("date_of_birth", customer.date_of_birth)
+    license_expiry_date = update_data.get("license_expiry_date", customer.license_expiry_date)
+
+    try:
+        validate_customer_birth_date(date_of_birth)
+        update_data["driver_license_no"] = validate_driver_license(
+            update_data.get("driver_license_no", customer.driver_license_no),
+            license_expiry_date,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
     if "email" in update_data and update_data["email"] != customer.email:
-        existing_customer = db.execute(select(Customer).where(Customer.email == update_data["email"])).scalars().first()
+        existing_customer = db.execute(
+            select(Customer).where(Customer.email == update_data["email"], Customer.customer_id != customer.customer_id)
+        ).scalars().first()
 
         if existing_customer is not None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
@@ -94,7 +113,11 @@ def update_profile(user_id: UUID, profile_data: CustomerProfileUpdate, db: Sessi
         setattr(address, field, update_data[field])
 
     customer.updated_at = utc_now()
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered") from exc
     db.refresh(customer)
 
     return _profile_response(db, customer)
@@ -150,40 +173,15 @@ def get_rental_history(user_id: UUID, db: Session = Depends(get_db), payload: di
         .order_by(Rental.start_date.desc())
     ).all()
 
-    available_car_ids = {
-        rental.car_id
-        for rental, _, _, _, car_status_name, _, _ in rows
-        if car_status_name == "available"
-    }
-
-    if available_car_ids:
-        for car_id in available_car_ids:
-            if cancel_unpaid_rentals_for_available_car(db, car_id):
-                db.commit()
-
-        # Refresh rental objects after possible cancellation
-        rows = db.execute(
-            select(
-                Rental,
-                Car.brand,
-                Car.model,
-                Car.plate_number,
-                CarStatus.name.label("car_status_name"),
-                pickup_location.c.name.label("pickup_location_name"),
-                return_location.c.name.label("return_location_name"),
-            )
-            .join(Car, Rental.car_id == Car.car_id)
-            .join(CarStatus, Car.car_status_id == CarStatus.car_status_id)
-            .join(pickup_location, Rental.pickup_location_id == pickup_location.c.location_id)
-            .join(return_location, Rental.return_location_id == return_location.c.location_id)
-            .where(Rental.customer_id == user_id)
-            .order_by(Rental.start_date.desc())
-        ).all()
-
     rental_ids = [rental.rental_id for rental, *_ in rows]
     invoiced_rental_ids = set(db.execute(select(Invoice.rental_id).where(Invoice.rental_id.in_(rental_ids))).scalars().all()) if rental_ids else set()
     rentals = [rental for rental, *_ in rows]
-    apply_paid_rental_lifecycle_statuses(db, rentals)
+    changed = expire_unpaid_reservation_holds(db, rentals)
+    changed = apply_paid_rental_lifecycle_statuses(db, rentals) or changed
+
+    if changed:
+        db.commit()
+
     status_names_by_id = rental_status_names_by_id(db)
 
     return [

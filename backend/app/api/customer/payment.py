@@ -20,7 +20,7 @@ from app.models.payment_status import PaymentStatus
 from app.models.rental import Rental
 from app.models.rental_status import RentalStatus
 from app.schemas import InvoiceResponse, RentalPaymentRequest
-from app.services.rental_lifecycle import apply_paid_rental_lifecycle_status, is_reservation_hold_active
+from app.services.rental_lifecycle import apply_paid_rental_lifecycle_status, count_rental_days, is_reservation_hold_active
 
 
 router = APIRouter(prefix="/rent", tags=["customer"])
@@ -65,16 +65,17 @@ def pay_for_rental(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Payment method not found")
 
     now = utc_now()
-    if not is_reservation_hold_active(created_at=rental.created_at, now=now):
+    paid_status = _get_lookup_by_name(db, PaymentStatus, COMPLETED_PAYMENT_STATUS, "payment status")
+    paid_invoice_status = _get_lookup_by_name(db, InvoiceStatus, PAID_INVOICE_STATUS, "invoice status")
+    existing_invoice = db.execute(select(Invoice).where(Invoice.rental_id == rental.rental_id)).scalar_one_or_none()
+    existing_invoice_is_paid = existing_invoice is not None and existing_invoice.payment_status_id == paid_status.payment_status_id
+
+    if not existing_invoice_is_paid and not is_reservation_hold_active(created_at=rental.created_at, now=now):
         cancelled_status = _get_lookup_by_name(db, RentalStatus, "cancelled", "rental status")
         if rental.rental_status_id != cancelled_status.rental_status_id:
             rental.rental_status_id = cancelled_status.rental_status_id
             db.commit()
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Reservation expired. Please create a new reservation.")
-
-    paid_status = _get_lookup_by_name(db, PaymentStatus, COMPLETED_PAYMENT_STATUS, "payment status")
-    paid_invoice_status = _get_lookup_by_name(db, InvoiceStatus, PAID_INVOICE_STATUS, "invoice status")
-    existing_invoice = db.execute(select(Invoice).where(Invoice.rental_id == rental.rental_id)).scalar_one_or_none()
 
     if existing_invoice is not None:
         _mark_invoice_paid(existing_invoice, payment_method=payment_method, paid_status=paid_status, paid_invoice_status=paid_invoice_status, now=now)
@@ -85,8 +86,8 @@ def pay_for_rental(
         response.status_code = status.HTTP_200_OK
         return existing_invoice
 
-    nights = max((rental.planned_end_date.date() - rental.start_date.date()).days, 1)
-    base_amount = (car.daily_rate * nights).quantize(Decimal("0.01"))
+    rental_days = count_rental_days(rental.start_date, rental.planned_end_date)
+    base_amount = (car.daily_rate * rental_days).quantize(Decimal("0.01"))
 
     discount_amount = Decimal("0.00")
     discount_id = None

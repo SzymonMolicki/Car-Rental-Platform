@@ -1,7 +1,8 @@
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import date, datetime, time, timedelta
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.time import utc_now
@@ -24,6 +25,12 @@ class RentalLifecycleConfigurationError(RuntimeError):
     pass
 
 
+@dataclass(frozen=True)
+class CarAvailabilityResult:
+    is_available: bool
+    expired_reservations_cancelled: bool = False
+
+
 def _rental_statuses_by_name(db: Session) -> dict[str, RentalStatus]:
     statuses = db.execute(select(RentalStatus)).scalars().all()
     return {status.name: status for status in statuses}
@@ -44,6 +51,88 @@ def _paid_rental_ids(db: Session, rental_ids: list[UUID]) -> set[UUID]:
 
 def is_reservation_hold_active(*, created_at: datetime, now: datetime, hold_minutes: int = RESERVATION_HOLD_MINUTES) -> bool:
     return created_at <= now < created_at + timedelta(minutes=hold_minutes)
+
+
+def normalize_rental_day_range(start_date: date, planned_end_date: date) -> tuple[datetime, datetime]:
+    return datetime.combine(start_date, time.min), datetime.combine(planned_end_date, time.max)
+
+
+def count_rental_days(start_date: datetime, planned_end_date: datetime) -> int:
+    return max((planned_end_date.date() - start_date.date()).days + 1, 1)
+
+
+def expire_unpaid_reservation_holds(db: Session, rentals: list[Rental], *, now: datetime | None = None) -> bool:
+    now = now or utc_now()
+    statuses_by_name = _rental_statuses_by_name(db)
+    reserved_status = statuses_by_name.get(RESERVED_STATUS)
+    cancelled_status = statuses_by_name.get(CANCELLED_STATUS)
+
+    if reserved_status is None:
+        raise RentalLifecycleConfigurationError(f"Missing rental status lookup value: {RESERVED_STATUS}")
+    if cancelled_status is None:
+        raise RentalLifecycleConfigurationError(f"Missing rental status lookup value: {CANCELLED_STATUS}")
+
+    reserved_rentals = [
+        rental
+        for rental in rentals
+        if rental.rental_status_id == reserved_status.rental_status_id
+        and not is_reservation_hold_active(created_at=rental.created_at, now=now)
+    ]
+
+    if not reserved_rentals:
+        return False
+
+    paid_ids = _paid_rental_ids(db, [rental.rental_id for rental in reserved_rentals])
+    changed = False
+
+    for rental in reserved_rentals:
+        if rental.rental_id in paid_ids:
+            continue
+
+        rental.rental_status_id = cancelled_status.rental_status_id
+        changed = True
+
+    return changed
+
+
+def check_car_availability_for_period(db: Session, car_id: UUID, start_date: datetime, planned_end_date: datetime, *, now: datetime | None = None) -> CarAvailabilityResult:
+    now = now or utc_now()
+    statuses_by_name = _rental_statuses_by_name(db)
+    cancelled_status = statuses_by_name.get(CANCELLED_STATUS)
+
+    if cancelled_status is None:
+        raise RentalLifecycleConfigurationError(f"Missing rental status lookup value: {CANCELLED_STATUS}")
+
+    effective_end = func.coalesce(Rental.actual_end_date, Rental.planned_end_date)
+    conflicts = db.execute(select(Rental, RentalStatus.name).join(RentalStatus, Rental.rental_status_id == RentalStatus.rental_status_id).where(Rental.car_id == car_id, RentalStatus.name.in_((RESERVED_STATUS, ACTIVE_STATUS)), Rental.start_date < planned_end_date, effective_end > start_date)).all()
+
+    if not conflicts:
+        return CarAvailabilityResult(is_available=True)
+
+    paid_ids = _paid_rental_ids(db, [rental.rental_id for rental, _ in conflicts])
+    expired_reservations_cancelled = False
+    is_blocked = False
+
+    for rental, status_name in conflicts:
+        if status_name == ACTIVE_STATUS:
+            is_blocked = True
+            continue
+
+        if status_name != RESERVED_STATUS:
+            continue
+
+        if rental.rental_id in paid_ids:
+            is_blocked = True
+            continue
+
+        if is_reservation_hold_active(created_at=rental.created_at, now=now):
+            is_blocked = True
+            continue
+
+        rental.rental_status_id = cancelled_status.rental_status_id
+        expired_reservations_cancelled = True
+
+    return CarAvailabilityResult(is_available=not is_blocked, expired_reservations_cancelled=expired_reservations_cancelled)
 
 
 def _target_status_name(rental: Rental, now: datetime) -> str:

@@ -2,13 +2,24 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 
 class RentalPaymentRequest(BaseModel):
     rental_id: UUID
     payment_method_id: UUID
-    discount_code: str | None = None
-    
+    discount_code: str | None = Field(None, max_length=50)
+
+    @field_validator("discount_code", mode="before")
+    @classmethod
+    def normalize_discount_code(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        if isinstance(value, str):
+            normalized = value.strip().upper()
+            return normalized or None
+        return value
+
 
 class InvoiceResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -26,4 +37,3 @@ class InvoiceResponse(BaseModel):
     total_amount: Decimal
     paid_at: datetime | None
     created_at: datetime
-

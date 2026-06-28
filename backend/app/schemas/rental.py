@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -49,5 +49,5 @@ class CarRentalRequest(BaseModel):
     car_id: UUID
     pickup_location_id: UUID
     return_location_id: UUID
-    start_date: datetime
-    planned_end_date: datetime
+    start_date: date
+    planned_end_date: date

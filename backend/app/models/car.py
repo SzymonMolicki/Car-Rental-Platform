@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, SmallInteger, String, Uuid
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, Numeric, SmallInteger, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.time import utc_now
@@ -19,6 +19,14 @@ if TYPE_CHECKING:
 
 class Car(Base):
     __tablename__ = "car"
+    __table_args__ = (
+        CheckConstraint("production_year >= 1886", name="ck_car_production_year_min"),
+        CheckConstraint("seats BETWEEN 1 AND 60", name="ck_car_seats_range"),
+        CheckConstraint("mileage >= 0", name="ck_car_mileage_non_negative"),
+        CheckConstraint("daily_rate > 0", name="ck_car_daily_rate_positive"),
+        CheckConstraint("length(trim(vin)) > 0", name="ck_car_vin_not_blank"),
+        CheckConstraint("length(trim(plate_number)) > 0", name="ck_car_plate_number_not_blank")
+    )
 
     car_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid4)
     current_location_id: Mapped[UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("location.location_id"), nullable=False)
