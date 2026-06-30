@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import CarModal from "../../components/CarModal.jsx";
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
 import { apiFetch, readJsonResponse } from "../../lib/api.js";
 
@@ -8,6 +9,7 @@ export default function AdminCarsPage({ session, onLogout }) {
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedCar, setSelectedCar] = useState(null);
 
   useEffect(() => {
     async function loadCars() {
@@ -47,7 +49,14 @@ export default function AdminCarsPage({ session, onLogout }) {
         {cars.length > 0 && (
           <section className="cars-grid">
             {cars.map((car) => (
-              <article className="car-card" key={car.car_id || car.id}>
+              <article
+                className="car-card car-card-clickable"
+                key={car.car_id || car.id}
+                onClick={() => setSelectedCar(car)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => e.key === "Enter" && setSelectedCar(car)}
+              >
                 <div className="car-card-top">
                   <span className="car-status">{car.production_year}</span>
                   <span className="car-year">{car.daily_rate} zł</span>
@@ -67,11 +76,17 @@ export default function AdminCarsPage({ session, onLogout }) {
                     <strong>{car.car_status_id}</strong>
                   </p>
                 </div>
+
+                <div className="car-card-hint">Click for full details</div>
               </article>
             ))}
           </section>
         )}
       </PageSection>
+
+      {selectedCar && (
+        <CarModal car={selectedCar} onClose={() => setSelectedCar(null)} />
+      )}
     </PageShell>
   );
 }
