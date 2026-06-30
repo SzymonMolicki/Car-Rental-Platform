@@ -1,30 +1,101 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
+import { apiFetch, readJsonResponse } from "../../lib/api.js";
 
 export default function UserInfoPage({ session, onLogout }) {
-  const [formData, setFormData] = useState({
-    first_name: session?.payload?.first_name || "Alex",
-    last_name: session?.payload?.last_name || "Morgan",
-    email: session?.email || "customer@example.com",
-    phone: "+48123123123",
-    city: "Warsaw",
-  });
+  const [formData, setFormData] = useState(null);
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
 
   function updateField(field, value) {
-    setFormData((previous) => ({ ...previous, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   }
 
-  function handleSubmit(event) {
+  // 1. LOAD CURRENT USER DATA
+  useEffect(() => {
+    async function loadProfile() {
+      if (!session?.token || !session?.payload?.sub) return;
+
+      try {
+        const response = await apiFetch(`/user/${session.payload.sub}`, {
+          token: session.token,
+        });
+
+        const data = await readJsonResponse(response);
+
+        if (!response.ok) {
+          throw new Error(data?.detail || "Failed to load profile");
+        }
+
+        setFormData({
+          first_name: data.first_name || "",
+          last_name: data.last_name || "",
+          email: data.email || "",
+          phone: data.phone || "",
+          city: data.city || "",
+        });
+      } catch (err) {
+        console.error(err);
+        setMessage("Failed to load profile.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadProfile();
+  }, [session]);
+
+  // 2. SAVE UPDATES TO BACKEND
+  async function handleSubmit(event) {
     event.preventDefault();
-    setMessage("Profile saved locally. Backend integration can be connected later.");
+    setMessage("");
+
+    try {
+      const response = await apiFetch(`/user/${session.payload.sub}`, {
+        method: "PATCH",
+        token: session.token,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await readJsonResponse(response);
+
+      if (!response.ok) {
+        throw new Error(data?.detail || "Failed to update profile");
+      }
+
+      setFormData({
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email,
+        phone: data.phone,
+        city: data.city,
+      });
+
+      setMessage("Profile updated successfully.");
+    } catch (err) {
+      console.error(err);
+      setMessage(err.message || "Update failed.");
+    }
+  }
+
+  if (loading || !formData) {
+    return (
+      <PageShell session={session} onLogout={onLogout}>
+        <PageSection eyebrow="Customer" title="Info" subtitle="Loading profile...">
+          <p>Loading...</p>
+        </PageSection>
+      </PageShell>
+    );
   }
 
   return (
     <PageShell session={session} onLogout={onLogout}>
-      <PageSection eyebrow="Customer" title="Info" subtitle="Basic editable profile screen.">
+      <PageSection eyebrow="Customer" title="Info" subtitle="Manage your profile details.">
         <div className="hero-actions" style={{ marginTop: 0 }}>
           <Link className="back-link" to="/user">
             ← Back to user area
@@ -35,27 +106,47 @@ export default function UserInfoPage({ session, onLogout }) {
           <form className="auth-form" onSubmit={handleSubmit}>
             <label>
               First name
-              <input type="text" value={formData.first_name} onChange={(event) => updateField("first_name", event.target.value)} />
+              <input
+                type="text"
+                value={formData.first_name}
+                onChange={(e) => updateField("first_name", e.target.value)}
+              />
             </label>
 
             <label>
               Last name
-              <input type="text" value={formData.last_name} onChange={(event) => updateField("last_name", event.target.value)} />
+              <input
+                type="text"
+                value={formData.last_name}
+                onChange={(e) => updateField("last_name", e.target.value)}
+              />
             </label>
 
             <label>
               Email
-              <input type="email" value={formData.email} onChange={(event) => updateField("email", event.target.value)} />
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => updateField("email", e.target.value)}
+              />
             </label>
 
             <label>
               Phone
-              <input type="tel" value={formData.phone} onChange={(event) => updateField("phone", event.target.value)} />
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => updateField("phone", e.target.value)}
+              />
             </label>
 
             <label>
               City
-              <input type="text" value={formData.city} onChange={(event) => updateField("city", event.target.value)} />
+              <input
+                type="text"
+                value={formData.city}
+                onChange={(e) => updateField("city", e.target.value)}
+              />
             </label>
 
             <button type="submit" className="primary-link auth-submit">
