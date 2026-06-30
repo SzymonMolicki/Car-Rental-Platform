@@ -2,11 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
-<<<<<<< HEAD
-from sqlalchemy import delete, select
-=======
 from sqlalchemy import select
->>>>>>> 9a52ea6ba350e28f5b59862742cc6511b91e45eb
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -17,18 +13,11 @@ from app.models.address import Address
 from app.models.car import Car
 from app.models.car_status import CarStatus
 from app.models.customer import Customer
-<<<<<<< HEAD
-from app.models.invoice import Invoice
-=======
->>>>>>> 9a52ea6ba350e28f5b59862742cc6511b91e45eb
 from app.models.location import Location
 from app.models.rental import Rental
 from app.schemas import CustomerProfileResponse, CustomerProfileUpdate, RentalHistoryResponse
 from app.services.customer_validation import normalize_email, validate_customer_birth_date, validate_driver_license
-<<<<<<< HEAD
-=======
 from app.services.deletion import delete_customer_with_related_records
->>>>>>> 9a52ea6ba350e28f5b59862742cc6511b91e45eb
 from app.services.invoice.invoice_service import RentalInvoiceError, generate_rental_invoice_pdf
 from app.services.rental_lifecycle import apply_paid_rental_lifecycle_statuses, expire_unpaid_reservation_holds, rental_status_names_by_id
 
@@ -138,28 +127,7 @@ def update_profile(user_id: UUID, profile_data: CustomerProfileUpdate, db: Sessi
 def delete_profile(user_id: UUID, db: Session = Depends(get_db), payload: dict = Depends(require_customer)) -> None:
     _ensure_own_profile(user_id, payload)
     customer = _get_customer_or_404(db, user_id)
-<<<<<<< HEAD
-    address_id = customer.address_id
-    rental_ids = db.execute(select(Rental.rental_id).where(Rental.customer_id == user_id)).scalars().all()
-
-    if rental_ids:
-        db.execute(delete(Invoice).where(Invoice.rental_id.in_(rental_ids)))
-        db.execute(delete(Rental).where(Rental.rental_id.in_(rental_ids)))
-
-    db.delete(customer)
-    db.flush()
-
-    address_is_used = db.execute(select(Customer.customer_id).where(Customer.address_id == address_id).limit(1)).first() or db.execute(select(Location.location_id).where(Location.address_id == address_id).limit(1)).first()
-
-    if not address_is_used:
-        address = db.get(Address, address_id)
-
-        if address is not None:
-            db.delete(address)
-
-=======
     delete_customer_with_related_records(db, customer)
->>>>>>> 9a52ea6ba350e28f5b59862742cc6511b91e45eb
     db.commit()
 
 
