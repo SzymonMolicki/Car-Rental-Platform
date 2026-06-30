@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
+import CarModal from "../components/CarModal.jsx";
 import { PageShell, PageSection } from "../components/PageShell.jsx";
 import { featuredCars } from "../lib/demoData.js";
 
 export default function CarsPage({ session, onLogout }) {
+  const [selectedCar, setSelectedCar] = useState(null);
+
   return (
     <PageShell session={session} onLogout={onLogout}>
       <PageSection
@@ -14,7 +18,14 @@ export default function CarsPage({ session, onLogout }) {
       >
         <section className="cars-grid">
           {featuredCars.map((car) => (
-            <article className="car-card" key={car.id}>
+            <article
+              className="car-card car-card-clickable"
+              key={car.id}
+              onClick={() => setSelectedCar(car)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && setSelectedCar(car)}
+            >
               <div className="car-card-top">
                 <span className="car-status">{car.status}</span>
                 <span className="car-year">{car.year}</span>
@@ -35,15 +46,26 @@ export default function CarsPage({ session, onLogout }) {
                 </p>
               </div>
 
-              <div className="hero-actions">
-                <Link className="back-link" to="/user/rent/payment">
+              <div className="hero-actions" style={{ marginTop: 14 }}>
+                <Link
+                  className="back-link"
+                  to="/user/rent/payment"
+                  state={{ car }}
+                  onClick={(event) => event.stopPropagation()}
+                >
                   Rent this car
                 </Link>
               </div>
+
+              <div className="car-card-hint">Click for full details</div>
             </article>
           ))}
         </section>
       </PageSection>
+
+      {selectedCar && (
+        <CarModal car={selectedCar} onClose={() => setSelectedCar(null)} />
+      )}
     </PageShell>
   );
 }
