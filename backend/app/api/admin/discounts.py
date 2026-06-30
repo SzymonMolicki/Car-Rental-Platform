@@ -9,6 +9,7 @@ from app.api.dependencies import require_admin
 from app.core.database import get_db
 from app.models.discount import Discount
 from app.schemas import DiscountCreate, DiscountResponse, DiscountUpdate
+from app.services.deletion import delete_discount_preserving_invoices
 
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -55,8 +56,12 @@ def delete_discount(discount_id: UUID, db: Session = Depends(get_db)) -> None:
     if discount is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Discount not found")
 
-    db.delete(discount)
-    db.commit()
+    delete_discount_preserving_invoices(db, discount)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Discount cannot be deleted because it is used by existing records") from exc
 
 
 @router.patch("/discounts/{discount_id}", response_model=DiscountResponse)

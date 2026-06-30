@@ -2,12 +2,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import require_admin
 from app.core.database import get_db
 from app.models.customer import Customer
 from app.schemas import CustomerResponse
+from app.services.deletion import delete_customer_with_related_records
 
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
@@ -35,5 +37,9 @@ def delete_customer(customer_id: UUID, db: Session = Depends(get_db)) -> None:
     if customer is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found")
 
-    db.delete(customer)
-    db.commit()
+    delete_customer_with_related_records(db, customer)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Customer cannot be deleted because it is used by existing records") from exc
