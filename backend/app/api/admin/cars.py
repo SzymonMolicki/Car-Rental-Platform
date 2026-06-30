@@ -15,6 +15,10 @@ from app.models.fuel_type import FuelType
 from app.models.location import Location
 from app.models.transmission import Transmission
 from app.schemas import CarCreate, CarResponse, CarUpdate
+<<<<<<< HEAD
+=======
+from app.services.deletion import delete_car_with_related_records
+>>>>>>> 9a52ea6ba350e28f5b59862742cc6511b91e45eb
 from app.services.rental_lifecycle import cancel_unpaid_rentals_for_available_car
 
 
@@ -75,8 +79,12 @@ def delete_car(car_id: UUID, db: Session = Depends(get_db)) -> None:
     if car is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Car not found")
 
-    db.delete(car)
-    db.commit()
+    delete_car_with_related_records(db, car)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Car cannot be deleted because it is used by existing records") from exc
 
 
 @router.patch("/cars/{car_id}", response_model=CarResponse)
