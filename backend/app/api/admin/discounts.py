@@ -2,6 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import require_admin
@@ -11,6 +12,11 @@ from app.schemas import DiscountCreate, DiscountResponse, DiscountUpdate
 
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
+
+
+def _validate_discount_date_range(valid_from, valid_to) -> None:
+    if valid_from is not None and valid_to is not None and valid_from > valid_to:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="valid_from must be before or equal to valid_to")
 
 
 @router.get("/discounts", response_model=list[DiscountResponse])
@@ -32,7 +38,11 @@ def get_discount(discount_id: UUID, db: Session = Depends(get_db)) -> Discount:
 def create_discount(discount: DiscountCreate, db: Session = Depends(get_db)) -> Discount:
     new_discount = Discount(**discount.model_dump())
     db.add(new_discount)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Discount code already exists") from exc
     db.refresh(new_discount)
 
     return new_discount
@@ -57,11 +67,18 @@ def update_discount(discount_id: UUID, discount_data: DiscountUpdate, db: Sessio
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Discount not found")
 
     update_data = discount_data.model_dump(exclude_unset=True)
+    valid_from = update_data.get("valid_from", discount.valid_from)
+    valid_to = update_data.get("valid_to", discount.valid_to)
+    _validate_discount_date_range(valid_from, valid_to)
 
     for field, value in update_data.items():
         setattr(discount, field, value)
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Discount code already exists") from exc
     db.refresh(discount)
 
     return discount
