@@ -397,6 +397,10 @@ h1 {
   margin-top: 28px;
 }
 
+.car-card .hero-actions {
+    margin-top: auto;
+}
+
 .primary-link,
 .back-link {
   display: inline-block;
@@ -435,6 +439,9 @@ h1 {
   border-radius: 24px;
   padding: 22px;
   box-shadow: 0 10px 0 #2c2b2c;
+
+  display: flex;
+  flex-direction: column;
 }
 
 .car-card-top {
@@ -458,9 +465,10 @@ h1 {
 
 .car-card h2 {
   margin: 0;
-  color: #2c2b2c;
   font-size: 1.8rem;
   line-height: 1.1;
+
+  min-height: 4rem;
 }
 
 .car-details {
@@ -472,11 +480,13 @@ h1 {
 .car-details p {
   margin: 0;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   gap: 16px;
   padding-top: 12px;
   border-top: 2px solid rgba(44, 43, 44, 0.2);
+
+  min-width: 0;
 }
 
 .car-details span {
@@ -486,6 +496,10 @@ h1 {
 .car-details strong {
   font-size: 1rem;
   font-weight: 900;
+
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
 }
 
 .auth-form select {
