@@ -1,156 +1,188 @@
-# Car Rental Platform
+# Metrocars
 
-This project is a system for managing a car rental company.
-
-The final application will provide a REST API and a web interface that allow customers to browse available cars, create reservations, manage rentals and make payments. On the administrative side, it will support fleet management, customer management and rental processing.
-
-The system is built with FastAPI, PostgreSQL and SQLAlchemy, uses Alembic for database migrations and React for frontend.
+Metrocars is a FastAPI and React application for operating a car rental company of the same name. It supports customer registration and login, browsing available cars, creating and paying for rentals, profile management, rental history, invoice downloads and an administrative panel for fleet, customer, discount and rental management.
 
 ---
 
-## Technologies
+## Technology Stack
 
-- Python
+- Python 3.12
 - FastAPI
 - SQLAlchemy
 - Alembic
 - PostgreSQL
 - React
+- Vite
 - Docker Compose
 
 ---
 
-## Architecture
+## Services
 
-The application consists of three services:
+The application runs as three Docker Compose services:
 
-- frontend (React, port 5173)
-- backend (FastAPI, port 8000)
-- database (PostgreSQL, port 5432)
+- `frontend` - React/Vite application on port `5173`
+- `backend` - FastAPI application on port `8000`
+- `db` - PostgreSQL database on port `5432`
 
-The frontend communicates with the backend via HTTP API.
-The backend communicates with the database using SQLAlchemy.
+The frontend calls the backend over HTTP. The backend connects to PostgreSQL with SQLAlchemy and uses Alembic migrations for schema changes.
 
 ---
 
-## Running the application
+## Getting Started
 
 ### Requirements
 
 - Docker
 - Docker Compose
 
-### Start the system
+### Environment
 
-In the root directory of the project run:
+Create a local `.env` file from the example:
+
+```bash
+cp .env.example .env
+```
+
+Required backend variables:
+
+- `SECRET_KEY` - JWT signing key
+- `ADMIN_USERNAME` - administrator login
+- `ADMIN_PASSWORD_HASH` - Argon2id hash of the administrator password
+
+The provided `.env.example` allows local admin login with:
+
+- username: `admin`
+- password: `admin`
+
+### Start The Application
+
+Run from the project root:
 
 ```bash
 docker compose up --build
 ```
 
-This command will:
-- start the PostgreSQL database,
-- build and start the backend container (FastAPI),
-- build and start the frontend container (React).
-
-### Environment variables
-
-Backend secrets are loaded from the root `.env` file. This file is ignored by git.
-Use `.env.example` as a template.
-
-Required backend variables:
-
-- `SECRET_KEY` - JWT signing key, at least 32 characters long
-- `ADMIN_USERNAME` - administrator login
-- `ADMIN_PASSWORD_HASH` - Argon2id hash of the administrator password
-
-For local development, the prepared `.env` file allows logging in with:
-
-- login: `admin`
-- password: `admin`
-
-### Database migrations (Alembic)
-
-After starting the containers, run:
+Then apply database migrations:
 
 ```bash
 docker compose exec backend alembic upgrade head
 ```
 
-This creates all database tables.
+Seed demo data:
 
----
-
-## Accessing the application
-
-After the containers are running and the database is built, open a browser and go to:
-
-**Frontend (React):**
-http://localhost:5173
-
-**Cars page:**
-http://localhost:5173/cars
-
-**API documentation (Swagger UI):**
-http://localhost:8000/docs
-
----
-
-## Example usage
-
-### Create a car
-
-Use the Swagger UI (`/docs`) and call:
-
-POST /cars
-
-Example request body:
-
-```json
-{
-  "brand": "Toyota",
-  "model": "Corolla",
-  "production_year": 2022,
-  "daily_rate": 60,
-  "status": "available"
-}
+```bash
+docker compose exec backend python seed.py
 ```
 
-You can also view cars in the frontend at:
-http://localhost:5173/cars
+The seed is deterministic and idempotent. Running it again updates the seeded records instead of creating another copy.
 
 ---
 
-### Get all cars
+## Seed Data
 
-GET /cars
+`backend/seed.py` creates a demo dataset:
 
-Returns all cars stored in the database.
+- 12 rental locations in the GZM metropolitan area
+- 50 cars
+- 100 customer accounts
+- 5 discount codes
+- 150 paid rentals with invoices
+
+The seeded rentals include historical completed rentals, currently active paid rentals and future paid reservations. Seeded customer accounts use the password:
+
+```text
+Password123!
+```
+
+If you want a completely clean seeded database, remove the PostgreSQL volume first:
+
+```bash
+docker compose down -v
+docker compose up --build
+docker compose exec backend alembic upgrade head
+docker compose exec backend python seed.py
+```
+
+---
+
+## Application URLs
+
+- Frontend: http://localhost:5173
+- API root: http://localhost:8000
+- Swagger UI: http://localhost:8000/docs
+
+Main frontend routes:
+
+- `/` - home page
+- `/login` - login
+- `/register` - customer registration
+- `/cars` - customer car browsing and rental flow
+- `/user/:userId` - customer profile
+- `/user/:userId/history` - rental history and invoice downloads
+- `/admin` - admin panel
+
+---
+
+## API Overview
+
+Authentication uses JWT Bearer tokens.
+
+Public endpoints:
+
+- `POST /login`
+- `POST /signup`
+
+Shared authenticated endpoint:
+
+- `GET /lookups`
+
+Customer endpoints:
+
+- `GET /cars`
+- `POST /rent`
+- `POST /rent/payment`
+- `GET /user/{user_id}`
+- `PATCH /user/{user_id}`
+- `DELETE /user/{user_id}`
+- `GET /user/{user_id}/history`
+- `GET /user/{user_id}/history/{rental_id}/invoice`
+
+Admin endpoints:
+
+- `GET /admin/cars`
+- `GET /admin/cars/{car_id}`
+- `POST /admin/cars`
+- `PATCH /admin/cars/{car_id}`
+- `DELETE /admin/cars/{car_id}`
+- `GET /admin/customers`
+- `GET /admin/customers/{customer_id}`
+- `DELETE /admin/customers/{customer_id}`
+- `GET /admin/discounts`
+- `GET /admin/discounts/{discount_id}`
+- `POST /admin/discounts`
+- `PATCH /admin/discounts/{discount_id}`
+- `DELETE /admin/discounts/{discount_id}`
+- `GET /admin/rentals`
+- `GET /admin/rentals/{rental_id}`
+- `GET /admin/rentals/{rental_id}/invoice`
+- `GET /admin/lookups`
 
 ---
 
 ## Database
 
-The application uses PostgreSQL running in a Docker container.
+Docker Compose starts PostgreSQL with these local development settings:
 
-Internal connection settings:
+- host: `localhost`
+- internal Docker host: `db`
+- port: `5432`
+- database: `car_rental`
+- user: `postgres`
+- password: `postgres`
 
-- host: db
-- port: 5432
-- database: car_rental
-- user: postgres
-- password: postgres
+The backend container receives:
 
----
-
-## Notes
-
-- The backend and frontend run with automatic reload enabled.
-- The frontend communicates with the backend via HTTP (port 8000).
-- CORS is configured to allow requests from the frontend.
-
----
-
-## License
-
-This project is created for educational purposes.
+```text
+DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/car_rental
+```
