@@ -1,25 +1,37 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import AdminCarFormModal from "../../components/AdminCarFormModal.jsx";
 import CarModal from "../../components/CarModal.jsx";
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
 import { apiFetch, readJsonResponse } from "../../lib/api.js";
 
+
 export default function AdminCarsPage({ session, onLogout }) {
   const [cars, setCars] = useState([]);
+  const [lookups, setLookups] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedCar, setSelectedCar] = useState(null);
+  const [editorCar, setEditorCar] = useState(null);
+  const [editorOpen, setEditorOpen] = useState(false);
 
   useEffect(() => {
     async function loadCars() {
       try {
-        const response = await apiFetch("/admin/cars", { token: session?.token });
-        const data = await readJsonResponse(response);
+        const [carsResponse, lookupsResponse] = await Promise.all([
+          apiFetch("/admin/cars", { token: session?.token }),
+          apiFetch("/admin/lookups", { token: session?.token }),
+        ]);
 
-        if (!response.ok) throw new Error(data?.detail || "Failed to load cars");
+        const carsData = await readJsonResponse(carsResponse);
+        const lookupsData = await readJsonResponse(lookupsResponse);
 
-        setCars(Array.isArray(data) ? data : []);
+        if (!carsResponse.ok) throw new Error(carsData?.detail || "Failed to load cars");
+        if (!lookupsResponse.ok) throw new Error(lookupsData?.detail || "Failed to load lookups");
+
+        setCars(Array.isArray(carsData) ? carsData : []);
+        setLookups(lookupsData || null);
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "Could not load cars.");
       } finally {
@@ -30,11 +42,72 @@ export default function AdminCarsPage({ session, onLogout }) {
     loadCars();
   }, [session?.token]);
 
+  async function refreshCars() {
+    const response = await apiFetch("/admin/cars", { token: session?.token });
+    const data = await readJsonResponse(response);
+
+    if (!response.ok) throw new Error(data?.detail || "Failed to refresh cars");
+
+    setCars(Array.isArray(data) ? data : []);
+  }
+
+  function openCreateCar() {
+    setEditorCar(null);
+    setEditorOpen(true);
+  }
+
+  function openEditCar(car) {
+    setEditorCar(car);
+    setEditorOpen(true);
+    setSelectedCar(null);
+  }
+
+  async function handleDeleteCar(car) {
+    if (!window.confirm(`Delete ${car.brand} ${car.model}?`)) return;
+
+    try {
+      const response = await apiFetch(`/admin/cars/${car.car_id}`, {
+        token: session?.token,
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await readJsonResponse(response);
+        throw new Error(data?.detail || "Failed to delete car");
+      }
+
+      setCars((previous) => previous.filter((item) => item.car_id !== car.car_id));
+      setSelectedCar(null);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not delete car.");
+    }
+  }
+
+  async function handleSavedCar(savedCar) {
+    setEditorOpen(false);
+    setEditorCar(null);
+    setError("");
+
+    if (!savedCar?.car_id) {
+      await refreshCars();
+      return;
+    }
+
+    setCars((previous) => {
+      const exists = previous.some((car) => car.car_id === savedCar.car_id);
+      if (!exists) return [savedCar, ...previous];
+      return previous.map((car) => (car.car_id === savedCar.car_id ? savedCar : car));
+    });
+  }
+
   return (
     <PageShell session={session} onLogout={onLogout}>
       <PageSection eyebrow="Admin" title="Cars" subtitle="Backend-driven admin list of all cars.">
-        <div className="hero-actions" style={{ marginTop: 0 }}>
+        <div className="hero-actions" style={{ marginTop: 0, display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link className="back-link" to="/admin">← Back to dashboard</Link>
+          <button className="button-pill" type="button" onClick={openCreateCar}>
+            + Register new vehicle
+          </button>
         </div>
 
         {loading && <p className="status-text">Loading cars…</p>}
@@ -74,7 +147,42 @@ export default function AdminCarsPage({ session, onLogout }) {
       </PageSection>
 
       {selectedCar && (
-        <CarModal car={selectedCar} onClose={() => setSelectedCar(null)} />
+        <CarModal
+          car={selectedCar}
+          showRentAction={false}
+          onClose={() => setSelectedCar(null)}
+          actions={[
+            <button
+              key="edit"
+              className="button-pill"
+              type="button"
+              onClick={() => openEditCar(selectedCar)}
+            >
+              Edit car
+            </button>,
+            <button
+              key="delete"
+              className="button-pill button-pill-danger"
+              type="button"
+              onClick={() => handleDeleteCar(selectedCar)}
+            >
+              Delete car
+            </button>,
+          ]}
+        />
+      )}
+
+      {editorOpen && (
+        <AdminCarFormModal
+          session={session}
+          car={editorCar}
+          lookups={lookups}
+          onClose={() => {
+            setEditorOpen(false);
+            setEditorCar(null);
+          }}
+          onSaved={handleSavedCar}
+        />
       )}
     </PageShell>
   );

@@ -36,6 +36,29 @@ export default function AdminReservationsPage({ session, onLogout }) {
     loadReservations();
   }, [session?.token]);
 
+  async function downloadInvoice(reservation) {
+    try {
+      const response = await apiFetch(`/admin/rentals/${reservation.rental_id}/invoice`, { token: session?.token });
+
+      if (!response.ok) {
+        const data = await readJsonResponse(response);
+        throw new Error(data?.detail || "Failed to download invoice");
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = `invoice-${reservation.rental_id.slice(0, 8)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not download invoice.");
+    }
+  }
+
   return (
     <PageShell session={session} onLogout={onLogout}>
       <PageSection eyebrow="Admin" title="Reservations" subtitle="All backend rental records.">
@@ -106,6 +129,16 @@ export default function AdminReservationsPage({ session, onLogout }) {
             { label: "Planned end", value: formatValue(selectedReservation.planned_end_date) },
             { label: "Actual end", value: formatValue(selectedReservation.actual_end_date) },
             { label: "Created", value: formatValue(selectedReservation.created_at) },
+          ]}
+          actions={[
+            <button
+              key="download-invoice"
+              className="button-pill"
+              type="button"
+              onClick={() => downloadInvoice(selectedReservation)}
+            >
+              Get invoice
+            </button>,
           ]}
           onClose={() => setSelectedReservation(null)}
         />

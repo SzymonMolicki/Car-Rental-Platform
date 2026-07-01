@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 
-export default function CarModal({ car, onClose }) {
+export default function CarModal({ car, onClose, actions = [], showRentAction = true }) {
   useEffect(() => {
     function handleKey(e) {
       if (e.key === "Escape") onClose();
@@ -117,9 +117,12 @@ export default function CarModal({ car, onClose }) {
         </div>
 
         <div className="car-modal-footer">
-          <Link className="primary-link" to="/user/rent/payment" state={{ car }}>
-            Rent this car
-          </Link>
+          {showRentAction && (
+            <Link className="primary-link" to="/user/rent/payment" state={{ car }}>
+              Rent this car
+            </Link>
+          )}
+          {actions}
           <button className="back-link car-modal-close-btn" onClick={onClose}>
             Close
           </button>

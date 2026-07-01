@@ -8,7 +8,7 @@ function normalizeValue(value) {
   return String(value);
 }
 
-export default function EntityDetailsModal({ title, badges = [], description, details = [], onClose }) {
+export default function EntityDetailsModal({ title, badges = [], description, details = [], actions = [], onClose }) {
   useEffect(() => {
     function handleKey(event) {
       if (event.key === "Escape") onClose();
@@ -59,6 +59,7 @@ export default function EntityDetailsModal({ title, badges = [], description, de
         </div>
 
         <div className="car-modal-footer">
+          {actions}
           <button className="back-link car-modal-close-btn" onClick={onClose}>
             Close
           </button>

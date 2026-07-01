@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
-import { API_URL, apiFetch, readJsonResponse } from "../../lib/api.js";
+import { apiFetch, readJsonResponse } from "../../lib/api.js";
 
 function formatDate(iso) {
   if (!iso) return "—";
@@ -36,6 +36,29 @@ export default function UserHistoryPage({ session, onLogout }) {
 
     load();
   }, [userId, session?.token]);
+
+  async function downloadInvoice(rentalId) {
+    try {
+      const response = await apiFetch(`/user/${userId}/history/${rentalId}/invoice`, { token: session?.token });
+
+      if (!response.ok) {
+        const data = await readJsonResponse(response);
+        throw new Error(data?.detail || "Failed to download invoice");
+      }
+
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = `invoice-${rentalId.slice(0, 8)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not download invoice.");
+    }
+  }
 
   return (
     <PageShell session={session} onLogout={onLogout}>
@@ -74,14 +97,9 @@ export default function UserHistoryPage({ session, onLogout }) {
 
                 {item.has_invoice && (
                   <div className="hero-actions">
-                    <a
-                      className="back-link"
-                      href={`${API_URL}/user/${userId}/history/${item.rental_id}/invoice`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
+                    <button className="back-link" type="button" onClick={() => downloadInvoice(item.rental_id)}>
                       Download invoice
-                    </a>
+                    </button>
                   </div>
                 )}
               </article>

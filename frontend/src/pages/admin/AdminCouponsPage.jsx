@@ -36,6 +36,24 @@ export default function AdminCouponsPage({ session, onLogout }) {
     loadCoupons();
   }, [session?.token]);
 
+  async function handleDeleteCoupon(coupon) {
+    if (!window.confirm(`Delete coupon ${coupon.code}?`)) return;
+
+    try {
+      const response = await apiFetch(`/admin/discounts/${coupon.discount_id}`, { token: session?.token, method: "DELETE" });
+
+      if (!response.ok) {
+        const data = await readJsonResponse(response);
+        throw new Error(data?.detail || "Failed to delete coupon");
+      }
+
+      setCoupons((previous) => previous.filter((item) => item.discount_id !== coupon.discount_id));
+      setSelectedCoupon(null);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not delete coupon.");
+    }
+  }
+
   const sortedCoupons = useMemo(
     () => [...coupons].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
     [coupons],
@@ -119,6 +137,16 @@ export default function AdminCouponsPage({ session, onLogout }) {
             { label: "Valid to", value: formatDate(selectedCoupon.valid_to) },
             { label: "Created", value: formatDate(selectedCoupon.created_at) },
             { label: "Discount ID", value: selectedCoupon.discount_id, monospace: true },
+          ]}
+          actions={[
+            <button
+              key="delete-coupon"
+              className="button-pill button-pill-danger"
+              type="button"
+              onClick={() => handleDeleteCoupon(selectedCoupon)}
+            >
+              Delete coupon
+            </button>,
           ]}
           onClose={() => setSelectedCoupon(null)}
         />

@@ -40,6 +40,24 @@ export default function AdminUsersPage({ session, onLogout }) {
     loadUsers();
   }, [session?.token]);
 
+  async function handleDeleteUser(user) {
+    if (!window.confirm(`Delete ${user.first_name} ${user.last_name}?`)) return;
+
+    try {
+      const response = await apiFetch(`/admin/customers/${user.customer_id}`, { token: session?.token, method: "DELETE" });
+
+      if (!response.ok) {
+        const data = await readJsonResponse(response);
+        throw new Error(data?.detail || "Failed to delete user");
+      }
+
+      setUsers((previous) => previous.filter((item) => item.customer_id !== user.customer_id));
+      setSelectedUser(null);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not delete user.");
+    }
+  }
+
   return (
     <PageShell session={session} onLogout={onLogout}>
       <PageSection eyebrow="Admin" title="Users" subtitle="Customer list from the backend.">
@@ -105,6 +123,16 @@ export default function AdminUsersPage({ session, onLogout }) {
             { label: "Address ID", value: selectedUser.address_id, monospace: true },
             { label: "Created", value: formatDate(selectedUser.created_at) },
             { label: "Updated", value: formatDate(selectedUser.updated_at) },
+          ]}
+          actions={[
+            <button
+              key="delete-user"
+              className="button-pill button-pill-danger"
+              type="button"
+              onClick={() => handleDeleteUser(selectedUser)}
+            >
+              Delete user
+            </button>,
           ]}
           onClose={() => setSelectedUser(null)}
         />
