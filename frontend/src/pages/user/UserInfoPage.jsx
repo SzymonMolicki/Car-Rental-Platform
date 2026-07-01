@@ -11,7 +11,7 @@ export default function UserInfoPage({ session, onLogout }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  const userId = session?.sub;
+  const userId = session?.payload?.sub ?? session?.sub;
 
   useEffect(() => {
     if (!userId) return;

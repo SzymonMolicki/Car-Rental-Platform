@@ -20,7 +20,7 @@ export default function UserDashboardPage({ session, onLogout }) {
       }
 
       try {
-        const response = await apiFetch(`/user/${session.payload.sub}`, {
+        const response = await apiFetch(`/user/${session?.payload?.sub ?? session?.sub}`, {
           token: session.token,
         });
 

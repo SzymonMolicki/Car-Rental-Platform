@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
-import { apiFetch, readJsonResponse } from "../../lib/api.js";
+import { API_URL, apiFetch, readJsonResponse } from "../../lib/api.js";
 
 function formatDate(iso) {
   if (!iso) return "—";
@@ -14,7 +14,7 @@ export default function UserHistoryPage({ session, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const userId = session?.sub;
+  const userId = session?.payload?.sub ?? session?.sub;
 
   useEffect(() => {
     if (!userId) return;
@@ -76,7 +76,7 @@ export default function UserHistoryPage({ session, onLogout }) {
                   <div className="hero-actions">
                     <a
                       className="back-link"
-                      href={`/api/user/${userId}/history/${item.rental_id}/invoice`}
+                      href={`${API_URL}/user/${userId}/history/${item.rental_id}/invoice`}
                       target="_blank"
                       rel="noreferrer"
                     >
