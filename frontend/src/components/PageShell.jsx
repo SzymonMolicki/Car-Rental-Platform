@@ -10,41 +10,36 @@ function navLinkClass({ isActive }) {
   return isActive ? "top-link top-link-active" : "top-link";
 }
 
-const stripCars = [car1, car2, car3, car1, car2, car3, car1, car2, car3, car1, car2, car3];
+const stripCars = [car1, car2, car3, car1, car2, car3];
+const loopStripCars = [...stripCars, ...stripCars];
 
-function CarMotionStrip({ direction = 1 }) {
+function CarMotionStrip({ side, direction = 1 }) {
   const trackRef = useRef(null);
 
   useEffect(() => {
-    let animationFrame = 0;
+    if (!trackRef.current) return undefined;
 
-    function updatePosition() {
-      if (!trackRef.current) return;
+    const track = trackRef.current;
 
-      const offset = Math.sin(window.scrollY / 160) * 72 * direction;
-      trackRef.current.style.transform = `translate3d(${offset}px, 0, 0)`;
+    function updateSpeed() {
+      track.style.setProperty("--strip-speed", `${Math.max(18, window.innerHeight / 42)}s`);
     }
 
-    function handleScroll() {
-      cancelAnimationFrame(animationFrame);
-      animationFrame = requestAnimationFrame(updatePosition);
-    }
-
-    updatePosition();
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", updatePosition);
+    updateSpeed();
+    window.addEventListener("resize", updateSpeed);
 
     return () => {
-      cancelAnimationFrame(animationFrame);
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("resize", updateSpeed);
     };
-  }, [direction]);
+  }, []);
 
   return (
-    <div className="cars-motion-strip" aria-hidden="true">
-      <div className="cars-motion-strip-track" ref={trackRef}>
-        {stripCars.map((car, index) => (
+    <div className={`cars-motion-strip cars-motion-strip-${side}`} aria-hidden="true">
+      <div
+        className={`cars-motion-strip-track cars-motion-strip-track-${direction > 0 ? "forward" : "reverse"}`}
+        ref={trackRef}
+      >
+        {loopStripCars.map((car, index) => (
           <img className="strip-car" key={`${car}-${index}`} src={car} alt="" />
         ))}
       </div>
@@ -121,11 +116,11 @@ export function PageShell({ session, onLogout, children }) {
         </div>
       </header>
 
-      {showCarStrips && <CarMotionStrip direction={1} />}
+      {showCarStrips && <CarMotionStrip side="left" direction={1} />}
 
       {children}
 
-      {showCarStrips && <CarMotionStrip direction={-1} />}
+      {showCarStrips && <CarMotionStrip side="right" direction={-1} />}
     </main>
   );
 }
