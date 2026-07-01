@@ -20,6 +20,31 @@ const emptyForm = {
   country: "",
 };
 
+function formatSignupError(detail) {
+  if (!detail) return "Registration failed";
+
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (typeof item === "string") return item;
+        const location = Array.isArray(item?.loc) ? item.loc.filter(Boolean).join(".") : "";
+        const message = item?.msg || item?.message || JSON.stringify(item);
+        return location ? `${location}: ${message}` : message;
+      })
+      .join("; ");
+  }
+
+  if (typeof detail === "object") {
+    return detail.message || detail.detail || detail.error || JSON.stringify(detail);
+  }
+
+  return String(detail);
+}
+
 export default function SignUpPage({ session, onLogout }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState(emptyForm);
@@ -52,7 +77,7 @@ export default function SignUpPage({ session, onLogout }) {
       const data = await readJsonResponse(response);
 
       if (!response.ok) {
-        throw new Error(data?.detail || "Registration failed");
+        throw new Error(formatSignupError(data?.detail || data));
       }
 
       setMessage(data?.message || "Account created successfully.");

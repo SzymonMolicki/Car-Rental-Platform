@@ -1,12 +1,60 @@
+import { useEffect, useRef } from "react";
 import { Link, NavLink } from "react-router-dom";
 
+import car1 from "../../assets/car1.svg";
+import car2 from "../../assets/car2.svg";
+import car3 from "../../assets/car3.svg";
 import { getHomePath } from "../lib/auth.js";
 
 function navLinkClass({ isActive }) {
   return isActive ? "top-link top-link-active" : "top-link";
 }
 
+const stripCars = [car1, car2, car3, car1, car2, car3, car1, car2, car3, car1, car2, car3];
+
+function CarMotionStrip({ direction = 1 }) {
+  const trackRef = useRef(null);
+
+  useEffect(() => {
+    let animationFrame = 0;
+
+    function updatePosition() {
+      if (!trackRef.current) return;
+
+      const offset = Math.sin(window.scrollY / 160) * 72 * direction;
+      trackRef.current.style.transform = `translate3d(${offset}px, 0, 0)`;
+    }
+
+    function handleScroll() {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(updatePosition);
+    }
+
+    updatePosition();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", updatePosition);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [direction]);
+
+  return (
+    <div className="cars-motion-strip" aria-hidden="true">
+      <div className="cars-motion-strip-track" ref={trackRef}>
+        {stripCars.map((car, index) => (
+          <img className="strip-car" key={`${car}-${index}`} src={car} alt="" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function PageShell({ session, onLogout, children }) {
+  const showCarStrips = session?.role === "customer" || session?.role === "admin";
+
   return (
     <main className="page">
       <header className="site-top-panel">
@@ -73,7 +121,11 @@ export function PageShell({ session, onLogout, children }) {
         </div>
       </header>
 
+      {showCarStrips && <CarMotionStrip direction={1} />}
+
       {children}
+
+      {showCarStrips && <CarMotionStrip direction={-1} />}
     </main>
   );
 }
