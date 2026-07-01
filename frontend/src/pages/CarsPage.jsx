@@ -63,16 +63,28 @@ export default function CarsPage({ session, onLogout }) {
 
               <div className="car-details">
                 <p>
-                  <span>Daily rate</span>
-                  <strong>{car.daily_rate} zł</strong>
+                  <span>Plate</span>
+                  <strong>{car.plate_number}</strong>
                 </p>
-                <p>
-                  <span>Car id</span>
-                  <strong>{car.car_id}</strong>
-                </p>
+
                 <p>
                   <span>Fuel</span>
                   <strong>{car.fuel_type?.name || "—"}</strong>
+                </p>
+
+                <p>
+                  <span>Transmission</span>
+                  <strong>{car.transmission?.name || "—"}</strong>
+                </p>
+
+                <p>
+                  <span>Color</span>
+                  <strong>{car.color || "—"}</strong>
+                </p>
+
+                <p>
+                  <span>Daily rate</span>
+                  <strong>{car.daily_rate} zł</strong>
                 </p>
               </div>
 
