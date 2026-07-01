@@ -463,6 +463,12 @@ h1 {
   background: #fff4ae;
 }
 
+.car-status {
+  max-width: 60%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .car-card h2 {
   margin: 0;
   font-size: 1.8rem;
