@@ -335,18 +335,9 @@ a {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 24px;
-  padding: 24px 0;
-  animation: strip-scroll var(--strip-speed, 22s) linear infinite;
+  gap: 30px;
+  padding: 30px 0;
   will-change: transform;
-}
-
-.cars-motion-strip-track-forward {
-  animation-direction: normal;
-}
-
-.cars-motion-strip-track-reverse {
-  animation-direction: reverse;
 }
 
 .strip-car {
@@ -356,15 +347,6 @@ a {
   filter: brightness(0) saturate(0) invert(95%);
   opacity: 0.98;
   flex: 0 0 auto;
-}
-
-@keyframes strip-scroll {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(0, -50%, 0);
-  }
 }
 
 @media (max-width: 900px) {

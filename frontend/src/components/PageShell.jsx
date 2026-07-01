@@ -20,16 +20,34 @@ function CarMotionStrip({ side, direction = 1 }) {
     if (!trackRef.current) return undefined;
 
     const track = trackRef.current;
+    let animationFrame = 0;
 
-    function updateSpeed() {
-      track.style.setProperty("--strip-speed", `${Math.max(18, window.innerHeight / 42)}s`);
+    function updatePosition() {
+      const loopHeight = track.scrollHeight / 2;
+
+      if (!loopHeight) return;
+
+      const travel = (window.scrollY * 0.35 * direction) % loopHeight;
+      const offset = travel < 0 ? travel + loopHeight : travel;
+
+      track.style.transform = `translate3d(0, ${-offset}px, 0)`;
     }
 
-    updateSpeed();
-    window.addEventListener("resize", updateSpeed);
+    function handleScroll() {
+      cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(updatePosition);
+    }
+
+    updatePosition();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("load", updatePosition);
 
     return () => {
-      window.removeEventListener("resize", updateSpeed);
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("load", updatePosition);
     };
   }, []);
 
