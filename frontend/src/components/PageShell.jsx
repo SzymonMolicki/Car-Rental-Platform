@@ -10,7 +10,7 @@ function navLinkClass({ isActive }) {
   return isActive ? "top-link top-link-active" : "top-link";
 }
 
-const stripCars = [car1, car2, car3, car1, car2, car3];
+const stripCars = [car1, car2, car2, car3, car2, car1, car1, car3, car1, car2, car3, car2, car3];
 const loopStripCars = [...stripCars, ...stripCars];
 
 function CarMotionStrip({ side, direction = 1 }) {
@@ -138,7 +138,7 @@ export function PageShell({ session, onLogout, children }) {
 
       {children}
 
-      {showCarStrips && <CarMotionStrip side="right" direction={-1} />}
+      {showCarStrips && <CarMotionStrip side="right" direction={1} />}
     </main>
   );
 }
