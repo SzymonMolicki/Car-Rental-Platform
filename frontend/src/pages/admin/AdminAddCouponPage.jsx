@@ -63,8 +63,8 @@ export default function AdminAddCouponPage({ session, onLogout }) {
     <PageShell session={session} onLogout={onLogout}>
       <PageSection eyebrow="Admin" title="Add coupon" subtitle="Create a discount code using the backend endpoint.">
         <div className="hero-actions" style={{ marginTop: 0 }}>
-          <Link className="back-link" to="/admin">
-            ← Back to dashboard
+          <Link className="back-link" to="/admin/coupons">
+            ← Back to coupons
           </Link>
         </div>
 

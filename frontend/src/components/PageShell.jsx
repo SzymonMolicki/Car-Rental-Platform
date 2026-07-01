@@ -122,8 +122,8 @@ export function PageShell({ session, onLogout, children }) {
                 <NavLink className={navLinkClass} to="/admin/reservations">
                   Reservations
                 </NavLink>
-                <NavLink className={navLinkClass} to="/admin/addcoupon">
-                  Add coupon
+                <NavLink className={navLinkClass} to="/admin/coupons">
+                  Coupons
                 </NavLink>
                 <button type="button" className="top-link logout-btn" onClick={onLogout}>
                   Logout

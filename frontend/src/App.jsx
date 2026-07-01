@@ -5,6 +5,7 @@ import { AppRouteGuard, GuestRoute } from "./components/RouteGuards.jsx";
 import { clearStoredSession, getHomePath, getStoredSession, persistSession } from "./lib/auth.js";
 import AdminAddCouponPage from "./pages/admin/AdminAddCouponPage.jsx";
 import AdminCarsPage from "./pages/admin/AdminCarsPage.jsx";
+import AdminCouponsPage from "./pages/admin/AdminCouponsPage.jsx";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage.jsx";
 import AdminReservationsPage from "./pages/admin/AdminReservationsPage.jsx";
 import AdminUsersPage from "./pages/admin/AdminUsersPage.jsx";
@@ -90,6 +91,14 @@ export default function App() {
         element={
           <AppRouteGuard session={session} allowedRoles={["admin"]}>
             <AdminReservationsPage session={session} onLogout={handleLogout} />
+          </AppRouteGuard>
+        }
+      />
+      <Route
+        path="/admin/coupons"
+        element={
+          <AppRouteGuard session={session} allowedRoles={["admin"]}>
+            <AdminCouponsPage session={session} onLogout={handleLogout} />
           </AppRouteGuard>
         }
       />

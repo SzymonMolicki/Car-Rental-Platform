@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import EntityDetailsModal from "../../components/EntityDetailsModal.jsx";
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
 import { apiFetch, readJsonResponse } from "../../lib/api.js";
 
@@ -12,6 +13,7 @@ export default function AdminReservationsPage({ session, onLogout }) {
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedReservation, setSelectedReservation] = useState(null);
 
   useEffect(() => {
     async function loadReservations() {
@@ -50,7 +52,19 @@ export default function AdminReservationsPage({ session, onLogout }) {
         {reservations.length > 0 && (
           <section className="cars-grid">
             {reservations.map((reservation) => (
-              <article className="car-card" key={reservation.rental_id}>
+              <article
+                className="car-card car-card-clickable"
+                key={reservation.rental_id}
+                onClick={() => setSelectedReservation(reservation)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedReservation(reservation);
+                  }
+                }}
+              >
                 <div className="car-card-top">
                   <span className="car-status">{reservation.rental_status_id}</span>
                   <span className="car-year">{reservation.rental_id.slice(0, 8)}</span>
@@ -68,11 +82,34 @@ export default function AdminReservationsPage({ session, onLogout }) {
                     <strong>{formatValue(reservation.planned_end_date)}</strong>
                   </p>
                 </div>
+
+                <div className="car-card-hint">Click for full details</div>
               </article>
             ))}
           </section>
         )}
       </PageSection>
+
+      {selectedReservation && (
+        <EntityDetailsModal
+          title={`Reservation ${selectedReservation.rental_id.slice(0, 8)}`}
+          description="Rental record details"
+          badges={[{ label: "Status", value: selectedReservation.rental_status_id }]}
+          details={[
+            { label: "Rental ID", value: selectedReservation.rental_id, monospace: true },
+            { label: "Customer ID", value: selectedReservation.customer_id, monospace: true },
+            { label: "Car ID", value: selectedReservation.car_id, monospace: true },
+            { label: "Pickup location ID", value: selectedReservation.pickup_location_id, monospace: true },
+            { label: "Return location ID", value: selectedReservation.return_location_id, monospace: true },
+            { label: "Rental status ID", value: selectedReservation.rental_status_id, monospace: true },
+            { label: "Start date", value: formatValue(selectedReservation.start_date) },
+            { label: "Planned end", value: formatValue(selectedReservation.planned_end_date) },
+            { label: "Actual end", value: formatValue(selectedReservation.actual_end_date) },
+            { label: "Created", value: formatValue(selectedReservation.created_at) },
+          ]}
+          onClose={() => setSelectedReservation(null)}
+        />
+      )}
     </PageShell>
   );
 }

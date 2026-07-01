@@ -6,7 +6,7 @@ const adminLinks = [
   { to: "/admin/cars", title: "Cars", description: "Manage the fleet." },
   { to: "/admin/users", title: "Users", description: "Inspect customer accounts." },
   { to: "/admin/reservations", title: "Reservations", description: "Track bookings." },
-  { to: "/admin/addcoupon", title: "Add coupon", description: "Create a discount code." },
+  { to: "/admin/coupons", title: "Coupons", description: "View and create discount codes." },
 ];
 
 export default function AdminDashboardPage({ session, onLogout }) {
