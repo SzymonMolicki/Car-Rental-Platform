@@ -155,7 +155,7 @@ a {
   object-fit: contain;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0);
-  filter: brightness(0) saturate(100%) invert(89%) sepia(88%) saturate(1245%) hue-rotate(343deg) brightness(106%) contrast(104%);
+  filter: brightness(0) saturate(100%) invert(89%) sepia(78%) saturate(1245%) hue-rotate(343deg) brightness(106%) contrast(104%);
 }
 
 .top-panel-links {

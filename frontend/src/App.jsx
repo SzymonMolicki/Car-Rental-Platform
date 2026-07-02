@@ -164,12 +164,13 @@ export default function App() {
             <div className="car-modal-body">
               <img 
                 src={metroZubr}
-                alt="MetroCar service"
+                alt="MetroZubr service"
                 style={{
                   width: '100%',
                   borderRadius: '12px',
                   marginBottom: '16px',
-                  border: '2px solid #2c2b2c'
+                  border: '2px solid #2c2b2c',
+                  backgroundColor: '#f5f5f7'
                 }}
               />
               <p style={{ margin: '0', lineHeight: '1.6', color: '#2c2b2c' }}>
