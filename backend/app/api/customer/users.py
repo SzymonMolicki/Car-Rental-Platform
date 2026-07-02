@@ -13,6 +13,7 @@ from app.models.address import Address
 from app.models.car import Car
 from app.models.car_status import CarStatus
 from app.models.customer import Customer
+from app.models.invoice import Invoice
 from app.models.location import Location
 from app.models.rental import Rental
 from app.schemas import CustomerProfileResponse, CustomerProfileUpdate, RentalHistoryResponse
