@@ -10,7 +10,7 @@
   --text-on-dark: #f5f5f7;
   --panel-dark: rgb(44, 43, 44);
   --panel-accent: #ffe75c;
-  --board-cell-size: 144px;
+  --board-cell-size: 80px;
   --board-cell-gap: 1px;
 }
 
@@ -45,7 +45,7 @@ body {
   min-width: 100%;
   min-height: 100%;
   gap: var(--board-cell-gap);
-  display: inline-flex;
+
   align-items: center;
   justify-content: center;
 }
@@ -57,7 +57,7 @@ body {
   height: 100%;
   fill: currentColor;
   stroke: currentColor;
-  color: #a59b44;
+  color: #fff48c;
   max-width: 100%;
   max-height: 100%;
 }

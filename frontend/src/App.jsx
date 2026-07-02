@@ -26,7 +26,7 @@ import UserRentPaymentPage from "./pages/user/UserRentPaymentPage.jsx";
 
 
 const boardAssets = [Car1, Car2, Car3, Car4];
-const boardTileSize = 144;
+const boardTileSize = 80;
 const boardTileGap = 1;
 
 function getBoardDimensions() {
@@ -41,7 +41,7 @@ function getBoardDimensions() {
 }
 
 function pickBoardAsset(row, column) {
-  return boardAssets[(row * 7 + column * 5) % boardAssets.length];
+  return boardAssets[((row/2)*3 + (column /2)) % boardAssets.length];
 }
 
 function BoardBackdrop() {
