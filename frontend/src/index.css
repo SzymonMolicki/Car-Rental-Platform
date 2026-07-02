@@ -58,7 +58,8 @@ body {
   fill: currentColor;
   stroke: currentColor;
   color: #a59b44;
-  object-fit: contain;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .site-backdrop-cell {
@@ -90,20 +91,19 @@ body {
 .site-backdrop-logo {
   position: relative;
   z-index: 1;
-  width: 68%;
-  max-width: 114px;
+  width: 100%;
+  height: 100%;
   color: #e4db8d;
   display: flex;
   align-items: center;
   justify-content: center;
-
 }
 
 .site-backdrop-art {
   position: relative;
   z-index: 1;
-  width: 72%;
-  max-width: 122px;
+  width: 100%;
+  height: 100%;
   color: #e4db8d;
   display: flex;
   align-items: center;

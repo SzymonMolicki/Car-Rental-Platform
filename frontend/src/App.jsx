@@ -72,28 +72,16 @@ function BoardBackdrop() {
             <div
               aria-hidden="true"
               className="site-backdrop-art"
-            >
-              <svg
-                viewBox="0 0 200 200"
-                xmlns="http://www.w3.org/2000/svg"
-                preserveAspectRatio="xMidYMid meet"
-                dangerouslySetInnerHTML={{ __html: CarAsset }}
-              />
-            </div>
+              dangerouslySetInnerHTML={{ __html: CarAsset }}
+            />
           )}
 
           {isCenterTile && (
             <div
               aria-hidden="true"
               className="site-backdrop-logo"
-            >
-              <svg
-                viewBox="0 0 200 200"
-                xmlns="http://www.w3.org/2000/svg"
-                preserveAspectRatio="xMidYMid meet"
-                dangerouslySetInnerHTML={{ __html: MetrocarLogo }}
-              />
-            </div>
+              dangerouslySetInnerHTML={{ __html: MetrocarLogo }}
+            />
           )}
         </div>,
       );
