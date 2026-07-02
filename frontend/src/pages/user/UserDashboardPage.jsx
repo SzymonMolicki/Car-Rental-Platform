@@ -8,8 +8,10 @@ import { getUserPath } from "../../lib/auth.js";
 export default function UserDashboardPage({ session, onLogout }) {
   const [profile, setProfile] = useState(null);
   const userLinks = [
+    { to: "/cars", title: "Cars", description: "Browse and reserve available cars." },
     { to: getUserPath(session), title: "Info", description: "Update your personal and driving licence details." },
     { to: getUserPath(session, "/history"), title: "History", description: "See your past and upcoming rentals." },
+    
   ];
 
   useEffect(() => {

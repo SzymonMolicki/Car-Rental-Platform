@@ -96,11 +96,17 @@ export function PageShell({ session, onLogout, children }) {
 
             {session?.role === "customer" && (
               <>
+                <NavLink className={navLinkClass} to="/user" end>
+                  Home
+                </NavLink>
                 <NavLink className={navLinkClass} to="/cars">
                   Cars
                 </NavLink>
-                <NavLink className={navLinkClass} to={getUserPath(session)}>
-                  User
+                <NavLink className={navLinkClass} to={getUserPath(session)} end>
+                  Profile
+                </NavLink>
+                <NavLink className={navLinkClass} to={getUserPath(session, "/history")}>
+                  History
                 </NavLink>
                 <button type="button" className="top-link logout-btn" onClick={onLogout}>
                   Logout
