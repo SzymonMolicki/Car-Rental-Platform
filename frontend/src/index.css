@@ -10,7 +10,8 @@
   --text-on-dark: #f5f5f7;
   --panel-dark: #2c2b2c;
   --panel-accent: #ffe75c;
-  --board-cell-size: 168px;
+  --board-cell-size: 144px;
+  --board-cell-gap: 16px;
 }
 
 body {
@@ -39,6 +40,7 @@ body {
   display: grid;
   min-width: 100%;
   min-height: 100%;
+  gap: var(--board-cell-gap);
 }
 
 .site-backdrop-cell {
@@ -72,7 +74,7 @@ body {
   z-index: 1;
   width: 68%;
   max-width: 114px;
-  filter: brightness(0) saturate(100%) invert(88%) sepia(24%) saturate(792%) hue-rotate(350deg) brightness(106%) contrast(101%) drop-shadow(0 10px 18px rgba(44, 43, 44, 0.16));
+  filter: brightness(0) saturate(100%) invert(89%) sepia(88%) saturate(1245%) hue-rotate(343deg) brightness(106%) contrast(104%) drop-shadow(0 10px 18px rgba(44, 43, 44, 0.16));
 }
 
 .site-backdrop-art {
@@ -81,7 +83,7 @@ body {
   width: 72%;
   max-width: 122px;
   opacity: 0.9;
-  filter: brightness(0) saturate(100%) invert(88%) sepia(24%) saturate(792%) hue-rotate(350deg) brightness(106%) contrast(101%) drop-shadow(0 8px 14px rgba(44, 43, 44, 0.12));
+  filter: brightness(0) saturate(100%) invert(89%) sepia(88%) saturate(1245%) hue-rotate(343deg) brightness(106%) contrast(104%) drop-shadow(0 8px 14px rgba(44, 43, 44, 0.12));
 }
 
 a {
@@ -129,6 +131,7 @@ a {
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+  filter: brightness(0) saturate(100%) invert(89%) sepia(88%) saturate(1245%) hue-rotate(343deg) brightness(106%) contrast(104%);
 }
 
 .top-panel-links {
@@ -181,6 +184,13 @@ a {
   align-items: center;
   justify-content: center;
   text-align: center;
+}
+
+.home-hero-logo {
+  width: min(48vw, 340px);
+  max-width: 340px;
+  margin-bottom: 18px;
+  filter: brightness(0) saturate(100%) invert(89%) sepia(88%) saturate(1245%) hue-rotate(343deg) brightness(106%) contrast(104%) drop-shadow(0 18px 30px rgba(44, 43, 44, 0.16));
 }
 
 .cars-layout {

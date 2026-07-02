@@ -25,7 +25,8 @@ import UserInfoPage from "./pages/user/UserInfoPage.jsx";
 import UserRentPaymentPage from "./pages/user/UserRentPaymentPage.jsx";
 
 const boardAssets = [carBg1, carBg2, carBg3, carBg4];
-const boardTileSize = 168;
+const boardTileSize = 144;
+const boardTileGap = 16;
 
 function getBoardDimensions() {
   if (typeof window === "undefined") {
@@ -33,8 +34,8 @@ function getBoardDimensions() {
   }
 
   return {
-    columns: Math.ceil(window.innerWidth / boardTileSize) + 2,
-    rows: Math.ceil(window.innerHeight / boardTileSize) + 2,
+    columns: Math.ceil(window.innerWidth / (boardTileSize + boardTileGap)) + 2,
+    rows: Math.ceil(window.innerHeight / (boardTileSize + boardTileGap)) + 2,
   };
 }
 
@@ -77,7 +78,10 @@ function BoardBackdrop() {
 
   return (
     <div className="site-backdrop" aria-hidden="true">
-      <div className="site-backdrop-grid" style={{ gridTemplateColumns: `repeat(${dimensions.columns}, ${boardTileSize}px)` }}>
+      <div
+        className="site-backdrop-grid"
+        style={{ gridTemplateColumns: `repeat(${dimensions.columns}, ${boardTileSize}px)`, gap: `${boardTileGap}px` }}
+      >
         {cells}
       </div>
     </div>
