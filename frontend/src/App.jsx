@@ -65,8 +65,10 @@ function BoardBackdrop() {
         <div
           className={`site-backdrop-cell ${isCenterTile ? "site-backdrop-cell-center" : isCarTile ? "site-backdrop-cell-car" : "site-backdrop-cell-empty"}`}
           key={`${row}-${column}`}
-          style={isCarTile ? { "--board-art": `url(${pickBoardAsset(row, column)})` } : undefined}
         >
+          {isCarTile && !isCenterTile && (
+            <img className="site-backdrop-art" src={pickBoardAsset(row, column)} alt="" aria-hidden="true" />
+          )}
           {isCenterTile && <img className="site-backdrop-logo" src={metrocarLogo} alt="" aria-hidden="true" />}
         </div>,
       );
