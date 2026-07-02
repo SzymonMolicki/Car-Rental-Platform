@@ -156,7 +156,7 @@ a {
   border-radius: 12px;
   background: rgba(255, 255, 255, 0);
   color:#ffde24;
-  filter: brightness(0) saturate(100%) invert(89%) sepia(78%) saturate(1245%) hue-rotate(343deg) brightness(106%) contrast(104%);
+  
 }
 
 .top-panel-links {
@@ -215,7 +215,13 @@ a {
   width: min(48vw, 340px);
   max-width: 340px;
   margin-bottom: 18px;
-  filter: brightness(0) saturate(100%) invert(89%) sepia(88%) saturate(1245%) hue-rotate(343deg) brightness(106%) contrast(104%) drop-shadow(0 18px 30px rgba(44, 43, 44, 0.16));
+  background: rgba(44, 43, 44, 0.9); 
+  color:#ffde24;  
+  padding: 14px;
+  border: 2px solid rgba(37, 36, 37, 0.9); 
+  border-radius: 26px;
+  box-shadow: 0 6px 12px rgba(44, 43, 44, 0.18);
+  box-sizing: border-box;
 }
 
 .cars-layout {

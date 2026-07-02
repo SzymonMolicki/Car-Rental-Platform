@@ -11,7 +11,7 @@ export default function HomePage({ session, onLogout }) {
         <div
               aria-hidden="true"
               className="home-hero-logo"
-              dangerouslySetInnerHTML={{ __html: MetrocarLogo }}
+              dangerouslySetInnerHTML={{ __html: metrocarLogo }}
             />
         <p className="eyebrow">Car rental platform</p>
         <h1>MetroCars</h1>

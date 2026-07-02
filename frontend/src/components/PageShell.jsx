@@ -77,7 +77,7 @@ export function PageShell({ session, onLogout, children }) {
             <div
               aria-hidden="true"
               className="brand-logo"
-              dangerouslySetInnerHTML={{ __html: MetrocarLogo }}
+              dangerouslySetInnerHTML={{ __html: metrocarLogo }}
             />
             MetroCars
           </Link>
