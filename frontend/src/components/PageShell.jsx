@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Link, NavLink } from "react-router-dom";
 
+import metrocarLogo from "../../assets/metrocar_logo.svg";
 import car1 from "../../assets/car1.svg";
 import car2 from "../../assets/car2.svg";
 import car3 from "../../assets/car3.svg";
@@ -73,12 +74,7 @@ export function PageShell({ session, onLogout, children }) {
       <header className="site-top-panel">
         <div className="site-top-panel-inner">
           <Link className="brand-link" to="/">
-            <svg className="brand-car-svg" viewBox="0 0 120 56" aria-hidden="true">
-              <rect x="20" y="18" width="80" height="20" rx="9" ry="9"></rect>
-              <path d="M34 18 L44 8 H78 L92 18" fill="none" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"></path>
-              <circle cx="38" cy="42" r="8"></circle>
-              <circle cx="82" cy="42" r="8"></circle>
-            </svg>
+            <img className="brand-logo" src={metrocarLogo} alt="" aria-hidden="true" />
             MetroCars
           </Link>
 

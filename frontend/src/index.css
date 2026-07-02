@@ -1,16 +1,139 @@
-/* New styles for the top panel and auth pages */
+/* Base theme and generated backdrop */
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: Inter, Helvetica, Arial, sans-serif;
+  color: #2c2b2c;
+  --text-on-dark: #f5f5f7;
+  --panel-dark: #2c2b2c;
+  --panel-accent: #ffe75c;
+  --board-cell-size: 168px;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Inter, Helvetica, Arial, sans-serif;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.35), transparent 40%),
+    linear-gradient(180deg, #f5eecf 0%, #efe1aa 50%, #e8d685 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.18) 25%, transparent 25%) -12px 0/24px 24px,
+    linear-gradient(225deg, rgba(255, 255, 255, 0.18) 25%, transparent 25%) -12px 0/24px 24px,
+    linear-gradient(315deg, rgba(255, 255, 255, 0.18) 25%, transparent 25%) 0 0/24px 24px,
+    linear-gradient(45deg, rgba(255, 255, 255, 0.18) 25%, transparent 25%) 0 0/24px 24px;
+  opacity: 0.2;
+  pointer-events: none;
+}
 
 #root {
   min-height: 100vh;
+  position: relative;
+  isolation: isolate;
 }
+
+.site-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.site-backdrop-grid {
+  display: grid;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.site-backdrop-cell {
+  width: var(--board-cell-size);
+  height: var(--board-cell-size);
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid rgba(44, 43, 44, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.site-backdrop-cell-empty {
+  background: rgba(255, 251, 231, 0.35);
+}
+
+.site-backdrop-cell-car {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.16);
+  background-image: var(--board-art);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+.site-backdrop-cell-car::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(44, 43, 44, 0.08));
+}
+
+.site-backdrop-cell-center {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image: var(--board-art);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+.site-backdrop-cell-center::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(44, 43, 44, 0.1), rgba(255, 255, 255, 0.1));
+}
+
+.site-backdrop-logo {
+  position: relative;
+  z-index: 1;
+  width: 66%;
+  max-width: 112px;
+  filter: drop-shadow(0 10px 18px rgba(44, 43, 44, 0.35));
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.text-on-dark {
+  color: var(--text-on-dark);
+}
+
+/* Shared shell: PageShell.jsx */
+
 .site-top-panel {
-  width: min(1100px, 100%);
-  margin: 0 auto 24px;
-  background: #2c2b2c;
-  border: 2px solid #2c2b2c;
+  width: min(1140px, 100%);
+  margin: 0 auto 28px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
   border-radius: 999px;
-  padding: 8px 14px;
-  box-shadow: 0 8px 0 rgba(44, 43, 44, 0.32);
+  padding: 10px 14px;
+  background: rgba(44, 43, 44, 0.9);
+  box-shadow: 0 16px 40px rgba(44, 43, 44, 0.18);
+  backdrop-filter: blur(16px);
 }
 
 .site-top-panel-inner {
@@ -29,12 +152,13 @@
   letter-spacing: 0.02em;
 }
 
-.brand-car-svg {
-  width: 34px;
-  height: 18px;
-  fill: none;
-  stroke: var(--text-on-dark);
-  stroke-width: 5;
+.brand-logo {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
 }
 
 .top-panel-links {
@@ -45,16 +169,22 @@
 }
 
 .top-link {
-  border: 1px solid rgba(245, 245, 247, 0.5);
+  border: 1px solid rgba(245, 245, 247, 0.42);
   border-radius: 999px;
   padding: 8px 14px;
   color: var(--text-on-dark);
   font-weight: 700;
   background: rgba(255, 255, 255, 0.08);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.top-link:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .top-link-active {
-  background: rgba(255, 231, 92, 0.42);
+  background: rgba(255, 231, 92, 0.86);
   color: #2c2b2c;
 }
 
@@ -63,85 +193,19 @@
   font: inherit;
 }
 
-.auth-layout {
-  width: min(540px, 100%);
-  margin: 0 auto;
-  text-align: left;
-}
-
-.auth-form {
-  margin-top: 20px;
-  display: grid;
-  gap: 14px;
-}
-
-.auth-form label {
-  display: grid;
-  gap: 8px;
-  font-weight: 800;
-}
-
-.auth-form input {
-  border: 2px solid #2c2b2c;
-  border-radius: 12px;
-  padding: 11px 12px;
-  font: inherit;
-  color: #2c2b2c;
-  background: rgba(255, 255, 255, 0.68);
-}
-
-.auth-submit {
-  width: fit-content;
-  cursor: pointer;
-  font: inherit;
-}
-
-.auth-switch {
-  margin: 18px 0 0;
-  font-size: 0.98rem;
-  font-weight: 700;
-}
-
-.auth-switch a {
-  text-decoration: underline;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-:root {
-  font-family: Inter, Helvetica, Arial, sans-serif;
-  color: #2c2b2c;
-  --text-on-dark: #f5f5f7;
-}
-
-body {
-  margin: 0;
-  background: #ffe75c;
-  font-family: Inter, Helvetica, Arial, sans-serif;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.text-on-dark {
-  color: var(--text-on-dark);
-}
+/* Shared page layout */
 
 .page {
   min-height: 100vh;
-  padding: 48px 24px;
+  padding: 44px 24px 52px;
   position: relative;
   z-index: 1;
   overflow-x: hidden;
-  padding-inline: clamp(92px, 10vw, 180px);
+  padding-inline: clamp(32px, 8vw, 160px);
 }
 
 .home-layout {
-  min-height: calc(100vh - 96px);
+  min-height: calc(100vh - 104px);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -150,7 +214,7 @@ a {
 }
 
 .cars-layout {
-  width: min(1100px, 100%);
+  width: min(1120px, 100%);
   margin: 0 auto;
 }
 
@@ -228,6 +292,8 @@ a {
   }
 }
 
+/* HomePage.jsx + NotFoundPage.jsx */
+
 .eyebrow {
   margin: 0 0 12px;
   font-size: 0.95rem;
@@ -263,7 +329,7 @@ h1 {
 }
 
 .car-card .hero-actions {
-    margin-top: auto;
+  margin-top: auto;
 }
 
 .primary-link,
@@ -273,7 +339,16 @@ h1 {
   border-radius: 999px;
   padding: 12px 18px;
   font-weight: 800;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 6px 0 rgba(44, 43, 44, 0.14);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.primary-link:hover,
+.back-link:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 0 rgba(44, 43, 44, 0.16);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .button-pill {
@@ -286,8 +361,16 @@ h1 {
   font: inherit;
   font-weight: 800;
   color: #2c2b2c;
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 6px 0 rgba(44, 43, 44, 0.12);
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.button-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 0 rgba(44, 43, 44, 0.14);
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .button-pill-danger {
@@ -305,6 +388,8 @@ h1 {
   color: #8a1c1c;
 }
 
+/* CarsPage.jsx, AdminDashboardPage.jsx, AdminCarsPage.jsx, AdminCouponsPage.jsx, AdminReservationsPage.jsx, AdminUsersPage.jsx, UserDashboardPage.jsx, UserHistoryPage.jsx */
+
 .cars-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
@@ -313,11 +398,12 @@ h1 {
 }
 
 .car-card {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.72);
   border: 2px solid #2c2b2c;
   border-radius: 24px;
   padding: 22px;
-  box-shadow: 0 10px 0 #2c2b2c;
+  box-shadow: 0 12px 0 rgba(44, 43, 44, 0.9);
+  backdrop-filter: blur(8px);
 
   display: flex;
   flex-direction: column;
@@ -397,13 +483,33 @@ h1 {
   text-align: right;
 }
 
+.auth-layout {
+  width: min(560px, 100%);
+  margin: 0 auto;
+  text-align: left;
+}
+
+.auth-form {
+  margin-top: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 8px;
+  font-weight: 800;
+}
+
+.auth-form input,
 .auth-form select {
   border: 2px solid #2c2b2c;
   border-radius: 12px;
   padding: 11px 12px;
   font: inherit;
   color: #2c2b2c;
-  background: rgba(255, 255, 255, 0.68);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 5px 0 rgba(44, 43, 44, 0.08);
 }
 
 .auth-form input[type="checkbox"] {
@@ -411,9 +517,24 @@ h1 {
   height: 18px;
 }
 
+.auth-submit {
+  width: fit-content;
+  cursor: pointer;
+  font: inherit;
+}
 
+.auth-switch {
+  margin: 18px 0 0;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
 
-/* ── Clickable car card ── */
+.auth-switch a {
+  text-decoration: underline;
+}
+
+/* CarsPage.jsx and shared car cards */
+
 .car-card-clickable {
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -439,7 +560,8 @@ h1 {
   text-transform: uppercase;
 }
 
-/* ── Modal backdrop ── */
+/* Modal components: CarModal.jsx, AdminCarFormModal.jsx */
+
 .car-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -458,17 +580,18 @@ h1 {
   to   { opacity: 1; }
 }
 
-/* ── Modal box ── */
+/* Modal components: CarModal.jsx, AdminCarFormModal.jsx */
 .car-modal {
   position: relative;
   width: min(560px, 100%);
   max-height: 90vh;
   overflow-y: auto;
-  background: #ffe75c;
+  background: rgba(255, 251, 231, 0.94);
   border: 2px solid #2c2b2c;
   border-radius: 24px;
-  box-shadow: 0 16px 0 #2c2b2c;
+  box-shadow: 0 18px 0 rgba(44, 43, 44, 0.9);
   animation: modal-slide-up 0.2s ease;
+  backdrop-filter: blur(12px);
 }
 
 .car-modal-editor {
@@ -480,7 +603,7 @@ h1 {
   to   { transform: translateY(0);    opacity: 1; }
 }
 
-/* ── Close button ── */
+/* Modal components: CarModal.jsx, AdminCarFormModal.jsx */
 .car-modal-close {
   position: absolute;
   top: 16px;
@@ -504,7 +627,7 @@ h1 {
   background: rgba(255, 255, 255, 0.85);
 }
 
-/* ── Modal sections ── */
+/* Modal components: CarModal.jsx, AdminCarFormModal.jsx */
 .car-modal-header {
   padding: 28px 28px 20px;
   border-bottom: 2px solid rgba(44, 43, 44, 0.15);
@@ -587,6 +710,7 @@ h1 {
   background: rgba(255, 255, 255, 0.35);
 }
 
+/* Admin pages: AdminCarsPage.jsx, AdminCouponsPage.jsx, AdminReservationsPage.jsx, AdminUsersPage.jsx, AdminAddCouponPage.jsx */
 .admin-car-form.car-modal-body {
   padding: 0;
 }
@@ -654,7 +778,7 @@ h1 {
   font: inherit;
   font-weight: 800;
   color: #2c2b2c;
-  background: rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.86);
 }
 
 .admin-car-field input:focus,
@@ -682,7 +806,8 @@ h1 {
   }
 }
 
-/* ── Rent flow: step indicator ── */
+/* Rent flow: UserRentPaymentPage.jsx */
+
 .rent-steps {
   display: flex;
   flex-wrap: wrap;
@@ -736,7 +861,8 @@ h1 {
   background: #2c2b2c;
 }
 
-/* ── Rent flow: layout ── */
+/* Rent flow: UserRentPaymentPage.jsx */
+
 .rent-flow-layout {
   margin-top: 28px;
   display: grid;
@@ -772,15 +898,17 @@ h1 {
   background: rgba(255, 255, 255, 0.68);
 }
 
-/* ── Rent flow: summary sidebar ── */
+/* Rent flow: UserRentPaymentPage.jsx */
+
 .rent-summary-card {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.72);
   border: 2px solid #2c2b2c;
   border-radius: 16px;
   padding: 22px;
-  box-shadow: 0 10px 0 #2c2b2c;
+  box-shadow: 0 12px 0 rgba(44, 43, 44, 0.9);
   position: sticky;
   top: 24px;
+  backdrop-filter: blur(8px);
 }
 
 .rent-summary-card h2 {
