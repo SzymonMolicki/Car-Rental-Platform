@@ -156,9 +156,9 @@ export default function App() {
               ✕
             </button>
             <div className="car-modal-header">
-              <h2 className="car-modal-title">Welcome to MetroCar</h2>
+              <h2 className="car-modal-title">Znalazłeś Dzikiego MetroŻubra!</h2>
               <p className="car-modal-description">
-                Your premium car rental service
+                Jak wynajmować to MetroCar, a jak prowadzić, to pod wpływem MetroŻubra.
               </p>
             </div>
             <div className="car-modal-body">
