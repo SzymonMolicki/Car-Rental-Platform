@@ -1,11 +1,11 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-import carBg1 from "../assets/car-bg1.svg";
-import carBg2 from "../assets/car-bg2.svg";
-import carBg3 from "../assets/car-bg3.svg";
-import carBg4 from "../assets/car-bg4.svg";
-import metrocarLogo from "../assets/metrocar_logo.svg";
+import MetrocarLogo from "./../assets/metrocar_logo.svg?raw";
+import Car1 from "./../assets/car-bg1.svg?raw";
+import Car2 from "./../assets/car-bg2.svg?raw";
+import Car3 from "./../assets/car-bg3.svg?raw";
+import Car4 from "./../assets/car-bg4.svg?raw";
 import { AppRouteGuard, GuestRoute } from "./components/RouteGuards.jsx";
 import { clearStoredSession, getHomePath, getStoredSession, isSessionExpired, persistSession } from "./lib/auth.js";
 import AdminAddCouponPage from "./pages/admin/AdminAddCouponPage.jsx";
@@ -24,9 +24,10 @@ import UserHistoryPage from "./pages/user/UserHistoryPage.jsx";
 import UserInfoPage from "./pages/user/UserInfoPage.jsx";
 import UserRentPaymentPage from "./pages/user/UserRentPaymentPage.jsx";
 
-const boardAssets = [carBg1, carBg2, carBg3, carBg4];
+
+const boardAssets = [Car1, Car2, Car3, Car4];
 const boardTileSize = 144;
-const boardTileGap = 16;
+const boardTileGap = 1;
 
 function getBoardDimensions() {
   if (typeof window === "undefined") {
@@ -59,18 +60,41 @@ function BoardBackdrop() {
   const cells = [];
   for (let row = 0; row < dimensions.rows; row += 1) {
     for (let column = 0; column < dimensions.columns; column += 1) {
-      const isCenterTile = row % 3 === 1 && column % 3 === 1;
-      const isCarTile = row % 3 === 1 || column % 3 === 1;
-
+      const isCarTile = row % 2 === 0 && column % 2 === 0;
+      const isCenterTile = isCarTile && ((row / 2 + column / 2) % 2 === 0);
+      const CarAsset = pickBoardAsset(row, column);
       cells.push(
         <div
           className={`site-backdrop-cell ${isCenterTile ? "site-backdrop-cell-center" : isCarTile ? "site-backdrop-cell-car" : "site-backdrop-cell-empty"}`}
           key={`${row}-${column}`}
         >
           {isCarTile && !isCenterTile && (
-            <img className="site-backdrop-art" src={pickBoardAsset(row, column)} alt="" aria-hidden="true" />
+            <div
+              aria-hidden="true"
+              className="site-backdrop-art"
+            >
+              <svg
+                viewBox="0 0 200 200"
+                xmlns="http://www.w3.org/2000/svg"
+                preserveAspectRatio="xMidYMid meet"
+                dangerouslySetInnerHTML={{ __html: CarAsset }}
+              />
+            </div>
           )}
-          {isCenterTile && <img className="site-backdrop-logo" src={metrocarLogo} alt="" aria-hidden="true" />}
+
+          {isCenterTile && (
+            <div
+              aria-hidden="true"
+              className="site-backdrop-logo"
+            >
+              <svg
+                viewBox="0 0 200 200"
+                xmlns="http://www.w3.org/2000/svg"
+                preserveAspectRatio="xMidYMid meet"
+                dangerouslySetInnerHTML={{ __html: MetrocarLogo }}
+              />
+            </div>
+          )}
         </div>,
       );
     }
