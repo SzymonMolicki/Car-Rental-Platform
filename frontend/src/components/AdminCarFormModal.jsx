@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
-import { apiFetch, readJsonResponse } from "../lib/api.js";
+import { requestJson } from "../lib/api.js";
+import { useModalBehavior } from "../lib/modal.js";
 
 function toStringValue(value) {
   if (value == null) return "";
@@ -30,24 +31,56 @@ function optionList(items = []) {
   return Array.isArray(items) ? items : [];
 }
 
+function AdminCarSection({ title, description, children }) {
+  return (
+    <fieldset className="admin-car-section">
+      <legend>
+        <span>{title}</span>
+        {description && <small>{description}</small>}
+      </legend>
+      <div className="admin-car-form-grid">
+        {children}
+      </div>
+    </fieldset>
+  );
+}
+
+function SelectField({ label, value, onChange, children }) {
+  return (
+    <label className="admin-car-field">
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)} required>
+        {children}
+      </select>
+    </label>
+  );
+}
+
+function InputField({ label, value, onChange, type = "text", min, step, autoComplete }) {
+  return (
+    <label className="admin-car-field">
+      <span>{label}</span>
+      <input
+        type={type}
+        min={min}
+        step={step}
+        value={value}
+        autoComplete={autoComplete}
+        onChange={(event) => onChange(event.target.value)}
+        required
+      />
+    </label>
+  );
+}
+
 export default function AdminCarFormModal({ session, car, lookups, onClose, onSaved }) {
+  const dialogRef = useRef(null);
+  const titleId = useId();
   const [formData, setFormData] = useState(() => buildInitialForm(car, lookups));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    function handleKey(event) {
-      if (event.key === "Escape") onClose();
-    }
-
-    document.addEventListener("keydown", handleKey);
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.removeEventListener("keydown", handleKey);
-      document.body.style.overflow = "";
-    };
-  }, [onClose]);
+  useModalBehavior(onClose, dialogRef);
 
   useEffect(() => {
     setFormData(buildInitialForm(car, lookups));
@@ -81,20 +114,15 @@ export default function AdminCarFormModal({ session, car, lookups, onClose, onSa
     };
 
     try {
-      const response = await apiFetch(`/admin/cars${car?.car_id ? `/${car.car_id}` : ""}`, {
+      const data = await requestJson(`/admin/cars${car?.car_id ? `/${car.car_id}` : ""}`, {
         token: session?.token,
         method: car?.car_id ? "PATCH" : "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
+        fallbackMessage: car?.car_id ? "Failed to update car" : "Failed to create car",
       });
-
-      const data = await readJsonResponse(response);
-
-      if (!response.ok) {
-        throw new Error(data?.detail || (car?.car_id ? "Failed to update car" : "Failed to create car"));
-      }
 
       onSaved(data);
     } catch (requestError) {
@@ -111,120 +139,116 @@ export default function AdminCarFormModal({ session, car, lookups, onClose, onSa
   const carStatusOptions = optionList(lookups?.car_statuses);
 
   return (
-    <div className="car-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="car-modal car-modal-editor" onClick={(event) => event.stopPropagation()}>
+    <div className="car-modal-backdrop" onClick={onClose}>
+      <div
+        className="car-modal car-modal-editor"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
+      >
         <button className="car-modal-close" onClick={onClose} aria-label="Close">
           ✕
         </button>
 
         <div className="car-modal-header">
           <div className="car-modal-badges">
-            <span className="car-status">Admin</span>
-            <span className="car-year">Cars</span>
+            <span className="car-status">Fleet</span>
+            <span className="car-year">Vehicle</span>
           </div>
-          <h2 className="car-modal-title">{car?.car_id ? "Edit car" : "Register new vehicle"}</h2>
+          <h2 className="car-modal-title" id={titleId}>{car?.car_id ? "Edit car" : "Register new vehicle"}</h2>
           <p className="car-modal-description">
-            {car?.car_id ? "Update the vehicle using the admin PATCH endpoint." : "Create a new vehicle using the admin POST endpoint."}
+            {car?.car_id ? "Update this vehicle's details and availability." : "Add a vehicle to the rental fleet."}
           </p>
         </div>
 
         <form className="car-modal-body admin-car-form" onSubmit={handleSubmit}>
-          <div className="admin-car-form-grid">
-            <label>
-              Location
-              <select value={formData.current_location_id} onChange={(event) => updateField("current_location_id", event.target.value)} required>
+          <div className="admin-car-form-content">
+            <AdminCarSection title="Vehicle details" description="Information customers use to recognize the car.">
+              <InputField label="Brand" value={formData.brand} autoComplete="off" onChange={(value) => updateField("brand", value)} />
+              <InputField label="Model" value={formData.model} autoComplete="off" onChange={(value) => updateField("model", value)} />
+              <InputField
+                label="Production year"
+                type="number"
+                min="1886"
+                step="1"
+                value={formData.production_year}
+                onChange={(value) => updateField("production_year", value)}
+              />
+              <InputField label="Color" value={formData.color} autoComplete="off" onChange={(value) => updateField("color", value)} />
+            </AdminCarSection>
+
+            <AdminCarSection title="Registration" description="Unique vehicle identifiers and current odometer reading.">
+              <InputField label="VIN" value={formData.vin} autoComplete="off" onChange={(value) => updateField("vin", value)} />
+              <InputField label="Plate number" value={formData.plate_number} autoComplete="off" onChange={(value) => updateField("plate_number", value)} />
+              <InputField
+                label="Mileage"
+                type="number"
+                min="0"
+                step="1"
+                value={formData.mileage}
+                onChange={(value) => updateField("mileage", value)}
+              />
+            </AdminCarSection>
+
+            <AdminCarSection title="Rental setup" description="Availability, pricing, and features shown in the fleet.">
+              <SelectField label="Location" value={formData.current_location_id} onChange={(value) => updateField("current_location_id", value)}>
                 <option value="">Select location</option>
                 {locationOptions.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
-              </select>
-            </label>
+              </SelectField>
 
-            <label>
-              Fuel type
-              <select value={formData.fuel_type_id} onChange={(event) => updateField("fuel_type_id", event.target.value)} required>
-                <option value="">Select fuel type</option>
-                {fuelTypeOptions.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              Transmission
-              <select value={formData.transmission_id} onChange={(event) => updateField("transmission_id", event.target.value)} required>
-                <option value="">Select transmission</option>
-                {transmissionOptions.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              Car type
-              <select value={formData.car_type_id} onChange={(event) => updateField("car_type_id", event.target.value)} required>
-                <option value="">Select car type</option>
-                {carTypeOptions.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              Car status
-              <select value={formData.car_status_id} onChange={(event) => updateField("car_status_id", event.target.value)} required>
+              <SelectField label="Car status" value={formData.car_status_id} onChange={(value) => updateField("car_status_id", value)}>
                 <option value="">Select car status</option>
                 {carStatusOptions.map((item) => (
                   <option key={item.id} value={item.id}>{item.name}</option>
                 ))}
-              </select>
-            </label>
+              </SelectField>
 
-            <label>
-              VIN
-              <input type="text" value={formData.vin} onChange={(event) => updateField("vin", event.target.value)} required />
-            </label>
+              <SelectField label="Car type" value={formData.car_type_id} onChange={(value) => updateField("car_type_id", value)}>
+                <option value="">Select car type</option>
+                {carTypeOptions.map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </SelectField>
 
-            <label>
-              Plate number
-              <input type="text" value={formData.plate_number} onChange={(event) => updateField("plate_number", event.target.value)} required />
-            </label>
+              <SelectField label="Fuel type" value={formData.fuel_type_id} onChange={(value) => updateField("fuel_type_id", value)}>
+                <option value="">Select fuel type</option>
+                {fuelTypeOptions.map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </SelectField>
 
-            <label>
-              Brand
-              <input type="text" value={formData.brand} onChange={(event) => updateField("brand", event.target.value)} required />
-            </label>
+              <SelectField label="Transmission" value={formData.transmission_id} onChange={(value) => updateField("transmission_id", value)}>
+                <option value="">Select transmission</option>
+                {transmissionOptions.map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </SelectField>
 
-            <label>
-              Model
-              <input type="text" value={formData.model} onChange={(event) => updateField("model", event.target.value)} required />
-            </label>
-
-            <label>
-              Production year
-              <input type="number" min="1886" step="1" value={formData.production_year} onChange={(event) => updateField("production_year", event.target.value)} required />
-            </label>
-
-            <label>
-              Color
-              <input type="text" value={formData.color} onChange={(event) => updateField("color", event.target.value)} required />
-            </label>
-
-            <label>
-              Seats
-              <input type="number" min="1" step="1" value={formData.seats} onChange={(event) => updateField("seats", event.target.value)} required />
-            </label>
-
-            <label>
-              Mileage
-              <input type="number" min="0" step="1" value={formData.mileage} onChange={(event) => updateField("mileage", event.target.value)} required />
-            </label>
-
-            <label>
-              Daily rate
-              <input type="number" min="0" step="0.01" value={formData.daily_rate} onChange={(event) => updateField("daily_rate", event.target.value)} required />
-            </label>
+              <InputField
+                label="Seats"
+                type="number"
+                min="1"
+                step="1"
+                value={formData.seats}
+                onChange={(value) => updateField("seats", value)}
+              />
+              <InputField
+                label="Daily rate"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.daily_rate}
+                onChange={(value) => updateField("daily_rate", value)}
+              />
+            </AdminCarSection>
           </div>
+
+          {error && <p className="status-text error-text admin-car-form-error">{error}</p>}
 
           <div className="car-modal-footer">
             <button className="button-pill" type="submit" disabled={loading}>
@@ -234,8 +258,6 @@ export default function AdminCarFormModal({ session, car, lookups, onClose, onSa
               Cancel
             </button>
           </div>
-
-          {error && <p className="status-text error-text" style={{ marginTop: 12 }}>{error}</p>}
         </form>
       </div>
     </div>

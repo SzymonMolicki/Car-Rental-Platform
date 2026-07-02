@@ -23,6 +23,24 @@ export function getHomePath(role) {
   return role === "admin" ? "/admin" : "/cars";
 }
 
+export function getSessionUserId(session) {
+  return session?.payload?.sub ?? session?.sub ?? "";
+}
+
+export function getUserPath(session, suffix = "") {
+  const userId = getSessionUserId(session);
+  return userId ? `/user/${userId}${suffix}` : "/user";
+}
+
+export function isJwtPayloadExpired(payload) {
+  if (!payload?.exp) return true;
+  return payload.exp * 1000 <= Date.now();
+}
+
+export function isSessionExpired(session) {
+  return isJwtPayloadExpired(session?.payload);
+}
+
 export function getStoredSession() {
   const token = localStorage.getItem("access_token") || "";
 
@@ -32,7 +50,8 @@ export function getStoredSession() {
 
   const payload = decodeJwtPayload(token);
 
-  if (!payload) {
+  if (!payload || isJwtPayloadExpired(payload)) {
+    clearStoredSession();
     return null;
   }
 
@@ -50,6 +69,12 @@ export function getStoredSession() {
 
 export function persistSession(token) {
   const payload = decodeJwtPayload(token);
+
+  if (!payload || isJwtPayloadExpired(payload)) {
+    clearStoredSession();
+    return null;
+  }
+
   const role = payload?.role === "admin" || payload?.account_type === "admin" ? "admin" : "customer";
   const label = payload?.username || payload?.email || payload?.sub || "Guest";
 

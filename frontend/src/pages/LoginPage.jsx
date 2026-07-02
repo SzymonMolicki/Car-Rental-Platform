@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { PageShell } from "../components/PageShell.jsx";
-import { API_URL, readJsonResponse } from "../lib/api.js";
+import { requestJson } from "../lib/api.js";
 import { getHomePath } from "../lib/auth.js";
 
 export default function LoginPage({ session, onLogin, onLogout }) {
@@ -21,19 +21,17 @@ export default function LoginPage({ session, onLogin, onLogout }) {
     setError("");
 
     try {
-      const response = await fetch(`${API_URL}/login`, {
+      const data = await requestJson("/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: identifier, password }),
+        fallbackMessage: "Login failed",
       });
 
-      const data = await readJsonResponse(response);
-
-      if (!response.ok) {
-        throw new Error(data?.detail || "Login failed");
-      }
-
       const nextSession = onLogin(data.access_token);
+      if (!nextSession) {
+        throw new Error("Login failed");
+      }
       navigate(getHomePath(nextSession?.role), { replace: true });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not log in.");

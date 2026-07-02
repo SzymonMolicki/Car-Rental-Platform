@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import AdminCarFormModal from "../../components/AdminCarFormModal.jsx";
 import CarModal from "../../components/CarModal.jsx";
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
-import { apiFetch, readJsonResponse } from "../../lib/api.js";
+import { requestJson } from "../../lib/api.js";
 
 
 export default function AdminCarsPage({ session, onLogout }) {
@@ -19,16 +19,10 @@ export default function AdminCarsPage({ session, onLogout }) {
   useEffect(() => {
     async function loadCars() {
       try {
-        const [carsResponse, lookupsResponse] = await Promise.all([
-          apiFetch("/admin/cars", { token: session?.token }),
-          apiFetch("/admin/lookups", { token: session?.token }),
+        const [carsData, lookupsData] = await Promise.all([
+          requestJson("/admin/cars", { token: session?.token, fallbackMessage: "Failed to load cars" }),
+          requestJson("/admin/lookups", { token: session?.token, fallbackMessage: "Failed to load lookups" }),
         ]);
-
-        const carsData = await readJsonResponse(carsResponse);
-        const lookupsData = await readJsonResponse(lookupsResponse);
-
-        if (!carsResponse.ok) throw new Error(carsData?.detail || "Failed to load cars");
-        if (!lookupsResponse.ok) throw new Error(lookupsData?.detail || "Failed to load lookups");
 
         setCars(Array.isArray(carsData) ? carsData : []);
         setLookups(lookupsData || null);
@@ -43,10 +37,10 @@ export default function AdminCarsPage({ session, onLogout }) {
   }, [session?.token]);
 
   async function refreshCars() {
-    const response = await apiFetch("/admin/cars", { token: session?.token });
-    const data = await readJsonResponse(response);
-
-    if (!response.ok) throw new Error(data?.detail || "Failed to refresh cars");
+    const data = await requestJson("/admin/cars", {
+      token: session?.token,
+      fallbackMessage: "Failed to refresh cars",
+    });
 
     setCars(Array.isArray(data) ? data : []);
   }
@@ -66,15 +60,11 @@ export default function AdminCarsPage({ session, onLogout }) {
     if (!window.confirm(`Delete ${car.brand} ${car.model}?`)) return;
 
     try {
-      const response = await apiFetch(`/admin/cars/${car.car_id}`, {
+      await requestJson(`/admin/cars/${car.car_id}`, {
         token: session?.token,
         method: "DELETE",
+        fallbackMessage: "Failed to delete car",
       });
-
-      if (!response.ok) {
-        const data = await readJsonResponse(response);
-        throw new Error(data?.detail || "Failed to delete car");
-      }
 
       setCars((previous) => previous.filter((item) => item.car_id !== car.car_id));
       setSelectedCar(null);
@@ -102,7 +92,7 @@ export default function AdminCarsPage({ session, onLogout }) {
 
   return (
     <PageShell session={session} onLogout={onLogout}>
-      <PageSection eyebrow="Admin" title="Cars" subtitle="Backend-driven admin list of all cars.">
+      <PageSection eyebrow="Management" title="Cars" subtitle="Keep vehicle details, rates, and availability up to date.">
         <div className="hero-actions" style={{ marginTop: 0, display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link className="back-link" to="/admin">← Back to dashboard</Link>
           <button className="button-pill" type="button" onClick={openCreateCar}>
@@ -126,7 +116,7 @@ export default function AdminCarsPage({ session, onLogout }) {
                 onKeyDown={(e) => e.key === "Enter" && setSelectedCar(car)}
               >
                 <div className="car-card-top">
-                  <span className="car-status">{car.car_status?.name || car.car_status_id}</span>
+                  <span className="car-status">{car.car_status?.name || "Unknown status"}</span>
                   <span className="car-year">{car.production_year}</span>
                 </div>
 

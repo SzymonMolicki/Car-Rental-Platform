@@ -3,22 +3,23 @@ import { Link } from "react-router-dom";
 
 import CarModal from "../components/CarModal.jsx";
 import { PageShell, PageSection } from "../components/PageShell.jsx";
-import { apiFetch, readJsonResponse } from "../lib/api.js";
+import { requestJson } from "../lib/api.js";
+import { getUserPath } from "../lib/auth.js";
 
 export default function CarsPage({ session, onLogout }) {
   const [cars, setCars] = useState([]);
   const [selectedCar, setSelectedCar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const rentPath = getUserPath(session, "/rent/payment");
 
   useEffect(() => {
     async function loadCars() {
       try {
-        const response = await apiFetch("/cars", { token: session?.token });
-        const data = await readJsonResponse(response);
-
-        if (!response.ok) throw new Error(data?.detail || "Failed to load cars");
-
+        const data = await requestJson("/cars", {
+          token: session?.token,
+          fallbackMessage: "Failed to load cars",
+        });
         setCars(Array.isArray(data) ? data : []);
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "Could not load cars.");
@@ -33,10 +34,9 @@ export default function CarsPage({ session, onLogout }) {
   return (
     <PageShell session={session} onLogout={onLogout}>
       <PageSection
-        eyebrow="Customer view"
+        eyebrow="Available now"
         title="Available cars"
-        subtitle="Basic car browsing page for logged-in users."
-        actions={<Link className="primary-link" to="/user/rent/payment">Book a car</Link>}
+        subtitle="Choose a vehicle and start your reservation from the car card."
       >
         {loading && <p className="status-text">Loading available cars…</p>}
         {error && <p className="status-text error-text">{error}</p>}
@@ -91,7 +91,7 @@ export default function CarsPage({ session, onLogout }) {
               <div className="hero-actions" style={{ marginTop: 14 }}>
                 <Link
                   className="back-link"
-                  to="/user/rent/payment"
+                  to={rentPath}
                   state={{ car }}
                   onClick={(event) => event.stopPropagation()}
                 >
@@ -106,7 +106,7 @@ export default function CarsPage({ session, onLogout }) {
       </PageSection>
 
       {selectedCar && (
-        <CarModal car={selectedCar} onClose={() => setSelectedCar(null)} />
+        <CarModal car={selectedCar} onClose={() => setSelectedCar(null)} rentPath={rentPath} />
       )}
     </PageShell>
   );

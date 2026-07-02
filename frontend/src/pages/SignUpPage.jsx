@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { PageShell } from "../components/PageShell.jsx";
-import { API_URL, readJsonResponse } from "../lib/api.js";
+import { requestJson } from "../lib/api.js";
 
 const emptyForm = {
   first_name: "",
@@ -19,31 +19,6 @@ const emptyForm = {
   postal_code: "",
   country: "",
 };
-
-function formatSignupError(detail) {
-  if (!detail) return "Registration failed";
-
-  if (typeof detail === "string") {
-    return detail;
-  }
-
-  if (Array.isArray(detail)) {
-    return detail
-      .map((item) => {
-        if (typeof item === "string") return item;
-        const location = Array.isArray(item?.loc) ? item.loc.filter(Boolean).join(".") : "";
-        const message = item?.msg || item?.message || JSON.stringify(item);
-        return location ? `${location}: ${message}` : message;
-      })
-      .join("; ");
-  }
-
-  if (typeof detail === "object") {
-    return detail.message || detail.detail || detail.error || JSON.stringify(detail);
-  }
-
-  return String(detail);
-}
 
 export default function SignUpPage({ session, onLogout }) {
   const navigate = useNavigate();
@@ -63,7 +38,7 @@ export default function SignUpPage({ session, onLogout }) {
     setError("");
 
     try {
-      const response = await fetch(`${API_URL}/signup`, {
+      const data = await requestJson("/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -72,13 +47,8 @@ export default function SignUpPage({ session, onLogout }) {
           driver_license_no: formData.driver_license_no || null,
           license_expiry_date: formData.license_expiry_date || null,
         }),
+        fallbackMessage: "Registration failed",
       });
-
-      const data = await readJsonResponse(response);
-
-      if (!response.ok) {
-        throw new Error(formatSignupError(data?.detail || data));
-      }
 
       setMessage(data?.message || "Account created successfully.");
       setFormData(emptyForm);
@@ -97,7 +67,7 @@ export default function SignUpPage({ session, onLogout }) {
     <PageShell session={session} onLogout={onLogout}>
       <section className="auth-layout">
         <h1>Sign up</h1>
-        <p className="subtitle">Create a customer account and then continue into the car view.</p>
+        <p className="subtitle">Create your account to book cars and manage your rentals.</p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 import EntityDetailsModal from "../../components/EntityDetailsModal.jsx";
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
-import { apiFetch, readJsonResponse } from "../../lib/api.js";
+import { requestJson } from "../../lib/api.js";
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleString() : "N/A";
@@ -18,13 +18,10 @@ export default function AdminCouponsPage({ session, onLogout }) {
   useEffect(() => {
     async function loadCoupons() {
       try {
-        const response = await apiFetch("/admin/discounts", { token: session?.token });
-        const data = await readJsonResponse(response);
-
-        if (!response.ok) {
-          throw new Error(data?.detail || "Failed to load coupons");
-        }
-
+        const data = await requestJson("/admin/discounts", {
+          token: session?.token,
+          fallbackMessage: "Failed to load coupons",
+        });
         setCoupons(Array.isArray(data) ? data : []);
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "Could not load coupons.");
@@ -40,12 +37,11 @@ export default function AdminCouponsPage({ session, onLogout }) {
     if (!window.confirm(`Delete coupon ${coupon.code}?`)) return;
 
     try {
-      const response = await apiFetch(`/admin/discounts/${coupon.discount_id}`, { token: session?.token, method: "DELETE" });
-
-      if (!response.ok) {
-        const data = await readJsonResponse(response);
-        throw new Error(data?.detail || "Failed to delete coupon");
-      }
+      await requestJson(`/admin/discounts/${coupon.discount_id}`, {
+        token: session?.token,
+        method: "DELETE",
+        fallbackMessage: "Failed to delete coupon",
+      });
 
       setCoupons((previous) => previous.filter((item) => item.discount_id !== coupon.discount_id));
       setSelectedCoupon(null);
@@ -61,7 +57,7 @@ export default function AdminCouponsPage({ session, onLogout }) {
 
   return (
     <PageShell session={session} onLogout={onLogout}>
-      <PageSection eyebrow="Admin" title="Coupons" subtitle="All discount codes configured in the backend.">
+      <PageSection eyebrow="Management" title="Coupons" subtitle="Review active discounts and create new offers.">
         <div className="hero-actions" style={{ marginTop: 0, display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link className="back-link" to="/admin">
             ← Back to dashboard
@@ -136,7 +132,6 @@ export default function AdminCouponsPage({ session, onLogout }) {
             { label: "Valid from", value: formatDate(selectedCoupon.valid_from) },
             { label: "Valid to", value: formatDate(selectedCoupon.valid_to) },
             { label: "Created", value: formatDate(selectedCoupon.created_at) },
-            { label: "Discount ID", value: selectedCoupon.discount_id, monospace: true },
           ]}
           actions={[
             <button

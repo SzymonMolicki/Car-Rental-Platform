@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
-import { apiFetch, readJsonResponse } from "../../lib/api.js";
+import { requestJson } from "../../lib/api.js";
+import { getUserPath } from "../../lib/auth.js";
 
 const STEPS = [
   { key: "car", label: "Car & dates" },
@@ -22,16 +23,19 @@ function today() {
 
 export default function UserRentPaymentPage({ session, onLogout }) {
   const routeLocation = useLocation();
+  const userAreaPath = "/user";
+  const userHistoryPath = getUserPath(session, "/history");
 
-  // ── Remote data ──────────────────────────────────────────────────────────
   const [cars, setCars] = useState([]);
   const [lookups, setLookups] = useState(null);
-  const [loadingData, setLoadingData] = useState(true);
+  const [loadingLookups, setLoadingLookups] = useState(true);
+  const [loadingCars, setLoadingCars] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [carLoadError, setCarLoadError] = useState("");
 
-  // ── Form state ────────────────────────────────────────────────────────────
   const preselectedCar = routeLocation.state?.car;
-  const [carId, setCarId] = useState(preselectedCar?.car_id || preselectedCar?.id || "");
+  const preselectedCarId = preselectedCar?.car_id || preselectedCar?.id || "";
+  const [carId, setCarId] = useState(preselectedCarId);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [pickupLocationId, setPickupLocationId] = useState("");
@@ -39,59 +43,92 @@ export default function UserRentPaymentPage({ session, onLogout }) {
   const [couponCode, setCouponCode] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState("");
 
-  // ── Flow state ────────────────────────────────────────────────────────────
   const [stepIndex, setStepIndex] = useState(0);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [pendingRentalId, setPendingRentalId] = useState(null);
   const [confirmation, setConfirmation] = useState(null);
 
-  // ── Load cars + lookups on mount ─────────────────────────────────────────
+  const rentalDays = diffDays(startDate, endDate);
+  const hasValidDateRange = Boolean(startDate && endDate && rentalDays > 0);
+
   useEffect(() => {
-    async function load() {
-      setLoadingData(true);
+    async function loadLookups() {
+      setLoadingLookups(true);
       setLoadError("");
       try {
-        const [carsRes, lookupsRes] = await Promise.all([
-          apiFetch("/cars", { token: session?.token }),
-          apiFetch("/lookups", { token: session?.token }),
-        ]);
-
-        const carsData = await readJsonResponse(carsRes);
-        const lookupsData = await readJsonResponse(lookupsRes);
-
-        if (!carsRes.ok) throw new Error(carsData?.detail || "Failed to load cars");
-        if (!lookupsRes.ok) throw new Error(lookupsData?.detail || "Failed to load lookups");
-
-        const carList = Array.isArray(carsData) ? carsData : [];
-        setCars(carList);
+        const lookupsData = await requestJson("/lookups", {
+          token: session?.token,
+          fallbackMessage: "Failed to load lookups",
+        });
         setLookups(lookupsData);
 
-        // Default car to preselected if in list, else first available
-        if (!carId && carList.length > 0) setCarId(carList[0].car_id);
-
-        if (lookupsData?.payment_methods?.length > 0)
-          setPaymentMethodId(String(lookupsData.payment_methods[0].id));
+        if (lookupsData?.payment_methods?.length > 0) {
+          setPaymentMethodId((previous) => previous || String(lookupsData.payment_methods[0].id));
+        }
 
         if (lookupsData?.locations?.length > 0) {
-          setPickupLocationId(String(lookupsData.locations[0].id));
-          setReturnLocationId(String(lookupsData.locations[0].id));
+          setPickupLocationId((previous) => previous || String(lookupsData.locations[0].id));
+          setReturnLocationId((previous) => previous || String(lookupsData.locations[0].id));
         }
       } catch (err) {
         setLoadError(err instanceof Error ? err.message : "Failed to load page data.");
       } finally {
-        setLoadingData(false);
+        setLoadingLookups(false);
       }
     }
-    load();
+
+    loadLookups();
   }, [session?.token]);
 
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadCars() {
+      setLoadingCars(true);
+      setCarLoadError("");
+
+      try {
+        const query = hasValidDateRange
+          ? `?start_date=${encodeURIComponent(startDate)}&planned_end_date=${encodeURIComponent(endDate)}`
+          : "";
+        const carsData = await requestJson(`/cars${query}`, {
+          token: session?.token,
+          fallbackMessage: "Failed to load cars",
+        });
+        const carList = Array.isArray(carsData) ? carsData : [];
+
+        if (ignore) return;
+
+        setCars(carList);
+        setCarId((previous) => {
+          if (carList.some((car) => String(car.car_id) === String(previous))) return previous;
+          if (!hasValidDateRange && carList.some((car) => String(car.car_id) === String(preselectedCarId))) return preselectedCarId;
+          return carList[0]?.car_id || "";
+        });
+      } catch (err) {
+        if (!ignore) {
+          setCars([]);
+          setCarId("");
+          setCarLoadError(err instanceof Error ? err.message : "Could not load available cars.");
+        }
+      } finally {
+        if (!ignore) setLoadingCars(false);
+      }
+    }
+
+    loadCars();
+
+    return () => {
+      ignore = true;
+    };
+  }, [endDate, hasValidDateRange, preselectedCarId, session?.token, startDate]);
+
   const selectedCar = useMemo(
-    () => cars.find((c) => c.car_id === carId) || cars[0] || null,
+    () => cars.find((c) => String(c.car_id) === String(carId)) || null,
     [cars, carId]
   );
 
-  const rentalDays = diffDays(startDate, endDate);
   const estimatedTotal = selectedCar ? rentalDays * Number(selectedCar.daily_rate) : 0;
 
   function goToStep(index) {
@@ -106,11 +143,12 @@ export default function UserRentPaymentPage({ session, onLogout }) {
 
     if (!startDate || !endDate) { setError("Pick both a pickup and return date."); return; }
     if (rentalDays <= 0) { setError("Return date must be after the pickup date."); return; }
+    if (!carId || !selectedCar) { setError("Select an available car for these dates."); return; }
     if (!pickupLocationId || !returnLocationId) { setError("Select pickup and return locations."); return; }
 
     setLoading(true);
     try {
-      const response = await apiFetch("/rent", {
+      const data = await requestJson("/rent", {
         token: session?.token,
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -121,10 +159,8 @@ export default function UserRentPaymentPage({ session, onLogout }) {
           start_date: startDate,
           planned_end_date: endDate,
         }),
+        fallbackMessage: "Could not create reservation.",
       });
-
-      const data = await readJsonResponse(response);
-      if (!response.ok) throw new Error(data?.detail || "Could not create reservation.");
 
       setPendingRentalId(data.rental_id);
       goToStep(1);
@@ -138,11 +174,12 @@ export default function UserRentPaymentPage({ session, onLogout }) {
   // ── Step 2: POST /rent/payment → pays invoice ─────────────────────────────
   async function handlePayment() {
     setError("");
+    if (!pendingRentalId) { setError("Create a reservation before payment."); return; }
     if (!paymentMethodId) { setError("Select a payment method."); return; }
 
     setLoading(true);
     try {
-      const response = await apiFetch("/rent/payment", {
+      const data = await requestJson("/rent/payment", {
         token: session?.token,
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -151,10 +188,8 @@ export default function UserRentPaymentPage({ session, onLogout }) {
           payment_method_id: paymentMethodId,
           discount_code: couponCode || null,
         }),
+        fallbackMessage: "Payment failed.",
       });
-
-      const data = await readJsonResponse(response);
-      if (!response.ok) throw new Error(data?.detail || "Payment failed.");
 
       setConfirmation(data);
     } catch (err) {
@@ -164,11 +199,10 @@ export default function UserRentPaymentPage({ session, onLogout }) {
     }
   }
 
-  // ── Confirmation screen ───────────────────────────────────────────────────
   if (confirmation) {
     return (
       <PageShell session={session} onLogout={onLogout}>
-        <PageSection eyebrow="Customer" title="Booking confirmed" subtitle="Your reservation is paid and active.">
+        <PageSection eyebrow="Reservation complete" title="Booking confirmed" subtitle="Your car is booked and the payment is complete.">
           <section className="auth-layout" style={{ marginLeft: 0 }}>
             <article className="car-card">
               <h2>{selectedCar?.brand} {selectedCar?.model}</h2>
@@ -184,8 +218,8 @@ export default function UserRentPaymentPage({ session, onLogout }) {
               </div>
             </article>
             <div className="hero-actions">
-              <Link className="primary-link" to="/user/history">View rental history</Link>
-              <Link className="back-link" to="/user" style={{ marginLeft: 12 }}>Back to user area</Link>
+              <Link className="primary-link" to={userHistoryPath}>View rental history</Link>
+              <Link className="back-link" to={userAreaPath} style={{ marginLeft: 12 }}>Back to user area</Link>
             </div>
           </section>
         </PageSection>
@@ -193,22 +227,22 @@ export default function UserRentPaymentPage({ session, onLogout }) {
     );
   }
 
-  if (loadingData) {
+  if (loadingLookups && !lookups) {
     return (
       <PageShell session={session} onLogout={onLogout}>
-        <PageSection eyebrow="Customer" title="Rent a car" subtitle="">
+        <PageSection eyebrow="Reservation" title="Rent a car" subtitle="">
           <p className="status-text">Loading available cars…</p>
         </PageSection>
       </PageShell>
     );
   }
 
-  if (loadError) {
+  if (loadError && !lookups) {
     return (
       <PageShell session={session} onLogout={onLogout}>
-        <PageSection eyebrow="Customer" title="Rent a car" subtitle="">
+        <PageSection eyebrow="Reservation" title="Rent a car" subtitle="">
           <p className="status-text error-text">{loadError}</p>
-          <div className="hero-actions"><Link className="back-link" to="/user">← Back</Link></div>
+          <div className="hero-actions"><Link className="back-link" to={userAreaPath}>← Back</Link></div>
         </PageSection>
       </PageShell>
     );
@@ -220,12 +254,12 @@ export default function UserRentPaymentPage({ session, onLogout }) {
   return (
     <PageShell session={session} onLogout={onLogout}>
       <PageSection
-        eyebrow="Customer"
+        eyebrow="Reservation"
         title="Rent a car"
         subtitle="Pick your dates and locations, then confirm payment."
       >
         <div className="hero-actions" style={{ marginTop: 0 }}>
-          <Link className="back-link" to="/user">← Back to user area</Link>
+          <Link className="back-link" to={userAreaPath}>← Back to user area</Link>
         </div>
 
         <nav className="rent-steps" aria-label="Booking steps">
@@ -245,15 +279,15 @@ export default function UserRentPaymentPage({ session, onLogout }) {
 
         <div className="rent-flow-layout">
 
-          {/* ── Step 1: Car & dates ── */}
           {stepIndex === 0 && (
             <form className="rent-flow-form" onSubmit={handleReserve}>
               <label>
                 Car
-                <select value={carId} onChange={(e) => setCarId(e.target.value)}>
+                <select value={carId} onChange={(e) => setCarId(e.target.value)} disabled={loadingCars || cars.length === 0}>
+                  {cars.length === 0 && <option value="">No cars available</option>}
                   {cars.map((car) => (
                     <option key={car.car_id} value={car.car_id}>
-                      {car.brand} {car.model} ({car.production_year}) — {car.daily_rate} zł/day
+                      {car.brand} {car.model} ({car.production_year}) - {car.daily_rate} zł/day
                     </option>
                   ))}
                 </select>
@@ -287,15 +321,19 @@ export default function UserRentPaymentPage({ session, onLogout }) {
                 </select>
               </label>
 
+              {loadingCars && <p className="status-text">Checking available cars...</p>}
+              {carLoadError && <p className="status-text error-text">{carLoadError}</p>}
+              {!loadingCars && !carLoadError && hasValidDateRange && cars.length === 0 && (
+                <p className="status-text">No cars are available for these dates.</p>
+              )}
               {error && <p className="status-text error-text">{error}</p>}
 
-              <button type="submit" className="primary-link auth-submit" disabled={loading}>
+              <button type="submit" className="primary-link auth-submit" disabled={loading || loadingCars || cars.length === 0}>
                 {loading ? "Creating reservation…" : "Continue to checkout"}
               </button>
             </form>
           )}
 
-          {/* ── Step 2: Checkout ── */}
           {stepIndex === 1 && (
             <div className="rent-flow-form">
               <label>
@@ -330,17 +368,16 @@ export default function UserRentPaymentPage({ session, onLogout }) {
                   onClick={handlePayment}
                   disabled={loading}
                 >
-                  {loading ? "Processing…" : `Confirm & pay ${estimatedTotal} zł`}
+                  {loading ? "Processing…" : "Confirm payment"}
                 </button>
               </div>
 
               <p style={{ fontSize: "0.85rem", opacity: 0.6, marginTop: 4 }}>
-                Final amount is calculated server-side. Discount is applied if the code is valid.
+                Any valid discount is applied before the payment is completed.
               </p>
             </div>
           )}
 
-          {/* ── Summary sidebar ── */}
           <aside className="rent-summary-card">
             <h2>Order summary</h2>
             <div className="car-details">
@@ -351,7 +388,7 @@ export default function UserRentPaymentPage({ session, onLogout }) {
               <p><span>Pickup</span><strong>{startDate || "—"}</strong></p>
               <p><span>Return</span><strong>{endDate || "—"}</strong></p>
               <p><span>Days</span><strong>{rentalDays || "—"}</strong></p>
-              <p><span>Estimated total</span><strong>{estimatedTotal ? `${estimatedTotal} zł` : "—"}</strong></p>
+              <p><span>Before discounts</span><strong>{estimatedTotal ? `${estimatedTotal} zł` : "—"}</strong></p>
             </div>
           </aside>
         </div>

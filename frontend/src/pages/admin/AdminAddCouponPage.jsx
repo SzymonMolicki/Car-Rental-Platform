@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
-import { apiFetch, readJsonResponse } from "../../lib/api.js";
+import { requestJson } from "../../lib/api.js";
 
 const emptyForm = {
   name: "",
@@ -30,7 +30,7 @@ export default function AdminAddCouponPage({ session, onLogout }) {
     setError("");
 
     try {
-      const response = await apiFetch("/admin/discounts", {
+      const data = await requestJson("/admin/discounts", {
         token: session?.token,
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -42,13 +42,8 @@ export default function AdminAddCouponPage({ session, onLogout }) {
           valid_to: formData.valid_to ? new Date(formData.valid_to).toISOString() : null,
           is_active: formData.is_active,
         }),
+        fallbackMessage: "Failed to create coupon",
       });
-
-      const data = await readJsonResponse(response);
-
-      if (!response.ok) {
-        throw new Error(data?.detail || "Failed to create coupon");
-      }
 
       setMessage(`Coupon ${data?.code || formData.code} created.`);
       setFormData(emptyForm);
@@ -61,7 +56,7 @@ export default function AdminAddCouponPage({ session, onLogout }) {
 
   return (
     <PageShell session={session} onLogout={onLogout}>
-      <PageSection eyebrow="Admin" title="Add coupon" subtitle="Create a discount code using the backend endpoint.">
+      <PageSection eyebrow="Management" title="Add coupon" subtitle="Create a discount customers can use during payment.">
         <div className="hero-actions" style={{ marginTop: 0 }}>
           <Link className="back-link" to="/admin/coupons">
             ← Back to coupons

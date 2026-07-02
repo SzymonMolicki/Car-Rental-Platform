@@ -4,7 +4,7 @@ import { Link, NavLink } from "react-router-dom";
 import car1 from "../../assets/car1.svg";
 import car2 from "../../assets/car2.svg";
 import car3 from "../../assets/car3.svg";
-import { getHomePath } from "../lib/auth.js";
+import { getHomePath, getUserPath } from "../lib/auth.js";
 
 function navLinkClass({ isActive }) {
   return isActive ? "top-link top-link-active" : "top-link";
@@ -96,11 +96,17 @@ export function PageShell({ session, onLogout, children }) {
 
             {session?.role === "customer" && (
               <>
+                <NavLink className={navLinkClass} to="/user" end>
+                  Home
+                </NavLink>
                 <NavLink className={navLinkClass} to="/cars">
                   Cars
                 </NavLink>
-                <NavLink className={navLinkClass} to="/user">
-                  User
+                <NavLink className={navLinkClass} to={getUserPath(session)} end>
+                  Profile
+                </NavLink>
+                <NavLink className={navLinkClass} to={getUserPath(session, "/history")}>
+                  History
                 </NavLink>
                 <button type="button" className="top-link logout-btn" onClick={onLogout}>
                   Logout

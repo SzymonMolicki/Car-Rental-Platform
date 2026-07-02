@@ -1,4 +1,6 @@
-import { useEffect } from "react";
+import { useId, useRef } from "react";
+
+import { useModalBehavior } from "../lib/modal.js";
 
 function normalizeValue(value) {
   if (value == null || value === "") return "N/A";
@@ -9,23 +11,22 @@ function normalizeValue(value) {
 }
 
 export default function EntityDetailsModal({ title, badges = [], description, details = [], actions = [], onClose }) {
-  useEffect(() => {
-    function handleKey(event) {
-      if (event.key === "Escape") onClose();
-    }
+  const dialogRef = useRef(null);
+  const titleId = useId();
 
-    document.addEventListener("keydown", handleKey);
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.removeEventListener("keydown", handleKey);
-      document.body.style.overflow = "";
-    };
-  }, [onClose]);
+  useModalBehavior(onClose, dialogRef);
 
   return (
-    <div className="car-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="car-modal" onClick={(event) => event.stopPropagation()}>
+    <div className="car-modal-backdrop" onClick={onClose}>
+      <div
+        className="car-modal"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
+      >
         <button className="car-modal-close" onClick={onClose} aria-label="Close">
           ✕
         </button>
@@ -41,7 +42,7 @@ export default function EntityDetailsModal({ title, badges = [], description, de
             </div>
           )}
 
-          <h2 className="car-modal-title">{title}</h2>
+          <h2 className="car-modal-title" id={titleId}>{title}</h2>
           {description && <p className="car-modal-description">{description}</p>}
         </div>
 

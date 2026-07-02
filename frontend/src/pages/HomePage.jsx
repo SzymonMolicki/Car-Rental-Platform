@@ -9,7 +9,7 @@ export default function HomePage({ session, onLogout }) {
       <div className="home-layout">
         <p className="eyebrow">Car rental platform</p>
         <h1>MetroCars</h1>
-        <p className="subtitle home-subtitle">Public landing page, customer booking area, and admin console in one flow.</p>
+        <p className="subtitle home-subtitle">Find a car, book your dates, and manage your rentals in one place.</p>
 
         <div className="hero-actions">
           {session ? (

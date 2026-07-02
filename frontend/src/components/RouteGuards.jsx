@@ -1,9 +1,9 @@
 import { Navigate } from "react-router-dom";
 
-import { getHomePath } from "../lib/auth.js";
+import { getHomePath, isSessionExpired } from "../lib/auth.js";
 
 export function AppRouteGuard({ session, allowedRoles, children }) {
-  if (!session) {
+  if (!session || isSessionExpired(session)) {
     return <Navigate to="/login" replace />;
   }
 
@@ -15,7 +15,7 @@ export function AppRouteGuard({ session, allowedRoles, children }) {
 }
 
 export function GuestRoute({ session, redirectTo = "/", children }) {
-  if (session) {
+  if (session && !isSessionExpired(session)) {
     return <Navigate to={redirectTo} replace />;
   }
 

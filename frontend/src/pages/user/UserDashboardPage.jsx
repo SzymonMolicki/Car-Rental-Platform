@@ -2,16 +2,17 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
-import { apiFetch, readJsonResponse } from "../../lib/api.js";
-
-const userLinks = [
-  { to: "/user/info", title: "Info", description: "Edit profile details." },
-  { to: "/user/history", title: "History", description: "Review past purchases." },
-  { to: "/user/rent/payment", title: "Rent payment", description: "Reserve and pay for a car." },
-];
+import { requestJson } from "../../lib/api.js";
+import { getUserPath } from "../../lib/auth.js";
 
 export default function UserDashboardPage({ session, onLogout }) {
   const [profile, setProfile] = useState(null);
+  const userLinks = [
+    { to: "/cars", title: "Cars", description: "Browse and reserve available cars." },
+    { to: getUserPath(session), title: "Info", description: "Update your personal and driving licence details." },
+    { to: getUserPath(session, "/history"), title: "History", description: "See your past and upcoming rentals." },
+    
+  ];
 
   useEffect(() => {
     async function loadProfile() {
@@ -20,16 +21,10 @@ export default function UserDashboardPage({ session, onLogout }) {
       }
 
       try {
-        const response = await apiFetch(`/user/${session?.payload?.sub ?? session?.sub}`, {
+        const data = await requestJson(`/user/${session?.payload?.sub ?? session?.sub}`, {
           token: session.token,
+          fallbackMessage: "Failed to load profile",
         });
-
-        const data = await readJsonResponse(response);
-
-        if (!response.ok) {
-          throw new Error(data?.detail || "Failed to load profile");
-        }
-
         setProfile(data);
       } catch (error) {
         console.error("Failed to load customer profile:", error);
@@ -42,9 +37,9 @@ export default function UserDashboardPage({ session, onLogout }) {
   return (
     <PageShell session={session} onLogout={onLogout}>
       <PageSection
-        eyebrow="Customer"
+        eyebrow="Your account"
         title={profile ? `Welcome, ${profile.first_name}!` : "User area"}
-        subtitle="From here the customer can manage account details and rentals."
+        subtitle="Manage your profile, reservations, and invoices."
       >
         <section className="cars-grid">
           {userLinks.map((item) => (

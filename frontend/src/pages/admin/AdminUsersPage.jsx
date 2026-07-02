@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 import EntityDetailsModal from "../../components/EntityDetailsModal.jsx";
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
-import { apiFetch, readJsonResponse } from "../../lib/api.js";
+import { requestJson } from "../../lib/api.js";
 
 function formatDate(value) {
   return value ? new Date(value).toLocaleString() : "N/A";
@@ -22,13 +22,10 @@ export default function AdminUsersPage({ session, onLogout }) {
   useEffect(() => {
     async function loadUsers() {
       try {
-        const response = await apiFetch("/admin/customers", { token: session?.token });
-        const data = await readJsonResponse(response);
-
-        if (!response.ok) {
-          throw new Error(data?.detail || "Failed to load users");
-        }
-
+        const data = await requestJson("/admin/customers", {
+          token: session?.token,
+          fallbackMessage: "Failed to load users",
+        });
         setUsers(Array.isArray(data) ? data : []);
       } catch (requestError) {
         setError(requestError instanceof Error ? requestError.message : "Could not load users.");
@@ -44,12 +41,11 @@ export default function AdminUsersPage({ session, onLogout }) {
     if (!window.confirm(`Delete ${user.first_name} ${user.last_name}?`)) return;
 
     try {
-      const response = await apiFetch(`/admin/customers/${user.customer_id}`, { token: session?.token, method: "DELETE" });
-
-      if (!response.ok) {
-        const data = await readJsonResponse(response);
-        throw new Error(data?.detail || "Failed to delete user");
-      }
+      await requestJson(`/admin/customers/${user.customer_id}`, {
+        token: session?.token,
+        method: "DELETE",
+        fallbackMessage: "Failed to delete user",
+      });
 
       setUsers((previous) => previous.filter((item) => item.customer_id !== user.customer_id));
       setSelectedUser(null);
@@ -60,7 +56,7 @@ export default function AdminUsersPage({ session, onLogout }) {
 
   return (
     <PageShell session={session} onLogout={onLogout}>
-      <PageSection eyebrow="Admin" title="Users" subtitle="Customer list from the backend.">
+      <PageSection eyebrow="Management" title="Users" subtitle="View customer contact details and account information.">
         <div className="hero-actions" style={{ marginTop: 0 }}>
           <Link className="back-link" to="/admin">
             ← Back to dashboard
@@ -112,15 +108,13 @@ export default function AdminUsersPage({ session, onLogout }) {
         <EntityDetailsModal
           title={`${selectedUser.first_name} ${selectedUser.last_name}`}
           description="Customer account details"
-          badges={[{ label: "Customer", value: selectedUser.customer_id }]}
+          badges={[{ label: "Account", value: selectedUser.email }]}
           details={[
             { label: "Email", value: selectedUser.email },
             { label: "Phone", value: selectedUser.phone },
             { label: "Date of birth", value: formatDateOnly(selectedUser.date_of_birth) },
             { label: "Driver license no.", value: selectedUser.driver_license_no },
             { label: "License expiry", value: formatDateOnly(selectedUser.license_expiry_date) },
-            { label: "Customer ID", value: selectedUser.customer_id, monospace: true },
-            { label: "Address ID", value: selectedUser.address_id, monospace: true },
             { label: "Created", value: formatDate(selectedUser.created_at) },
             { label: "Updated", value: formatDate(selectedUser.updated_at) },
           ]}

@@ -1,27 +1,34 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
-import { apiFetch, readJsonResponse } from "../../lib/api.js";
+import { requestJson } from "../../lib/api.js";
+import { getSessionUserId } from "../../lib/auth.js";
 
 export default function UserInfoPage({ session, onLogout }) {
+  const { userId: routeUserId } = useParams();
   const [formData, setFormData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  const userId = session?.payload?.sub ?? session?.sub;
+  const userId = routeUserId ?? getSessionUserId(session);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      setError("Missing user id.");
+      setLoading(false);
+      return;
+    }
 
     async function load() {
+      setLoading(true);
       try {
-        const response = await apiFetch(`/user/${userId}`, { token: session?.token });
-        const data = await readJsonResponse(response);
-
-        if (!response.ok) throw new Error(data?.detail || "Failed to load profile");
+        const data = await requestJson(`/user/${userId}`, {
+          token: session?.token,
+          fallbackMessage: "Failed to load profile",
+        });
 
         setFormData({
           first_name: data.first_name || "",
@@ -57,16 +64,13 @@ export default function UserInfoPage({ session, onLogout }) {
     setError("");
 
     try {
-      const response = await apiFetch(`/user/${userId}`, {
+      await requestJson(`/user/${userId}`, {
         token: session?.token,
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
+        fallbackMessage: "Failed to save profile",
       });
-
-      const data = await readJsonResponse(response);
-
-      if (!response.ok) throw new Error(data?.detail || "Failed to save profile");
 
       setMessage("Profile updated successfully.");
     } catch (err) {
@@ -78,7 +82,7 @@ export default function UserInfoPage({ session, onLogout }) {
 
   return (
     <PageShell session={session} onLogout={onLogout}>
-      <PageSection eyebrow="Customer" title="Info" subtitle="View and edit your profile details.">
+      <PageSection eyebrow="Your account" title="Info" subtitle="Keep your contact details and licence information current.">
         <div className="hero-actions" style={{ marginTop: 0 }}>
           <Link className="back-link" to="/user">← Back to user area</Link>
         </div>

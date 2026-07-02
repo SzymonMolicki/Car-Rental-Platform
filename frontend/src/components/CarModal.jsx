@@ -1,22 +1,17 @@
-import { useEffect } from "react";
+import { useId, useRef } from "react";
 import { Link } from "react-router-dom";
 
-export default function CarModal({ car, onClose, actions = [], showRentAction = true }) {
-  useEffect(() => {
-    function handleKey(e) {
-      if (e.key === "Escape") onClose();
-    }
-    document.addEventListener("keydown", handleKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", handleKey);
-      document.body.style.overflow = "";
-    };
-  }, [onClose]);
+import { useModalBehavior } from "../lib/modal.js";
+
+export default function CarModal({ car, onClose, actions = [], showRentAction = true, rentPath = "/user/rent/payment" }) {
+  const dialogRef = useRef(null);
+  const titleId = useId();
+
+  useModalBehavior(onClose, dialogRef);
 
   if (!car) return null;
 
-  // Some backend fields can come back as nested objects (e.g. {name: "Black"})
+  // Some car fields can come back as nested objects (e.g. {name: "Black"})
   // instead of plain strings/numbers. This safely unwraps those so React never
   // tries to render a raw object as a child.
   function asDisplayValue(value) {
@@ -27,13 +22,12 @@ export default function CarModal({ car, onClose, actions = [], showRentAction = 
     return value;
   }
 
-  // Support both customer (featuredCars) and admin (backend) car shapes
+  // Support both featured and managed car shapes.
   const brand = asDisplayValue(car.brand);
   const model = asDisplayValue(car.model);
   const year = asDisplayValue(car.year ?? car.production_year);
   const rate = asDisplayValue(car.rate ?? car.daily_rate);
-  const status = asDisplayValue(car.status ?? car.car_status_id);
-  const id = asDisplayValue(car.id ?? car.car_id);
+  const status = asDisplayValue(car.status ?? car.car_status);
   const plate = asDisplayValue(car.plate_number);
   const color = asDisplayValue(car.color);
   const fuel = asDisplayValue(car.fuel_type);
@@ -43,9 +37,14 @@ export default function CarModal({ car, onClose, actions = [], showRentAction = 
   const description = asDisplayValue(car.description);
 
   return (
-    <div className="car-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+    <div className="car-modal-backdrop" onClick={onClose}>
       <div
         className="car-modal"
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         <button className="car-modal-close" onClick={onClose} aria-label="Close">
@@ -57,7 +56,7 @@ export default function CarModal({ car, onClose, actions = [], showRentAction = 
             {status && <span className="car-status">{status}</span>}
             {year && <span className="car-year">{year}</span>}
           </div>
-          <h2 className="car-modal-title">
+          <h2 className="car-modal-title" id={titleId}>
             {brand} {model}
           </h2>
           {description && <p className="car-modal-description">{description}</p>}
@@ -69,12 +68,6 @@ export default function CarModal({ car, onClose, actions = [], showRentAction = 
               <div className="car-modal-detail-item">
                 <span className="car-modal-detail-label">Daily rate</span>
                 <strong className="car-modal-detail-value">{rate} zł</strong>
-              </div>
-            )}
-            {id && (
-              <div className="car-modal-detail-item">
-                <span className="car-modal-detail-label">Car ID</span>
-                <strong className="car-modal-detail-value car-modal-id">{id}</strong>
               </div>
             )}
             {plate && (
@@ -118,7 +111,7 @@ export default function CarModal({ car, onClose, actions = [], showRentAction = 
 
         <div className="car-modal-footer">
           {showRentAction && (
-            <Link className="primary-link" to="/user/rent/payment" state={{ car }}>
+            <Link className="primary-link" to={rentPath} state={{ car }}>
               Rent this car
             </Link>
           )}

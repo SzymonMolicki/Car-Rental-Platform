@@ -1,8 +1,8 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AppRouteGuard, GuestRoute } from "./components/RouteGuards.jsx";
-import { clearStoredSession, getHomePath, getStoredSession, persistSession } from "./lib/auth.js";
+import { clearStoredSession, getHomePath, getStoredSession, isSessionExpired, persistSession } from "./lib/auth.js";
 import AdminAddCouponPage from "./pages/admin/AdminAddCouponPage.jsx";
 import AdminCarsPage from "./pages/admin/AdminCarsPage.jsx";
 import AdminCouponsPage from "./pages/admin/AdminCouponsPage.jsx";
@@ -32,6 +32,20 @@ export default function App() {
     clearStoredSession();
     setSession(null);
   }
+
+  useEffect(() => {
+    if (isSessionExpired(session)) {
+      handleLogout();
+      return undefined;
+    }
+
+    function handleUnauthorized() {
+      handleLogout();
+    }
+
+    window.addEventListener("metrocars:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("metrocars:unauthorized", handleUnauthorized);
+  }, [session]);
 
   const homePath = session ? getHomePath(session.role) : "/";
 
@@ -127,6 +141,14 @@ export default function App() {
         }
       />
       <Route
+        path="/user/:userId"
+        element={
+          <AppRouteGuard session={session} allowedRoles={["customer"]}>
+            <UserInfoPage session={session} onLogout={handleLogout} />
+          </AppRouteGuard>
+        }
+      />
+      <Route
         path="/user/history"
         element={
           <AppRouteGuard session={session} allowedRoles={["customer"]}>
@@ -135,7 +157,23 @@ export default function App() {
         }
       />
       <Route
+        path="/user/:userId/history"
+        element={
+          <AppRouteGuard session={session} allowedRoles={["customer"]}>
+            <UserHistoryPage session={session} onLogout={handleLogout} />
+          </AppRouteGuard>
+        }
+      />
+      <Route
         path="/user/rent/payment"
+        element={
+          <AppRouteGuard session={session} allowedRoles={["customer"]}>
+            <UserRentPaymentPage session={session} onLogout={handleLogout} />
+          </AppRouteGuard>
+        }
+      />
+      <Route
+        path="/user/:userId/rent/payment"
         element={
           <AppRouteGuard session={session} allowedRoles={["customer"]}>
             <UserRentPaymentPage session={session} onLogout={handleLogout} />

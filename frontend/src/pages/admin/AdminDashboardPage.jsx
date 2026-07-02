@@ -4,18 +4,18 @@ import { PageShell, PageSection } from "../../components/PageShell.jsx";
 
 const adminLinks = [
   { to: "/admin/cars", title: "Cars", description: "Manage the fleet." },
-  { to: "/admin/users", title: "Users", description: "Inspect customer accounts." },
-  { to: "/admin/reservations", title: "Reservations", description: "Track bookings." },
-  { to: "/admin/coupons", title: "Coupons", description: "View and create discount codes." },
+  { to: "/admin/users", title: "Users", description: "Review customer accounts." },
+  { to: "/admin/reservations", title: "Reservations", description: "Follow upcoming and active bookings." },
+  { to: "/admin/coupons", title: "Coupons", description: "Manage customer discounts." },
 ];
 
 export default function AdminDashboardPage({ session, onLogout }) {
   return (
     <PageShell session={session} onLogout={onLogout}>
       <PageSection
-        eyebrow="Admin view"
+        eyebrow="Management"
         title="Admin dashboard"
-        subtitle="Special view shown after an admin login."
+        subtitle="Choose an area to manage fleet, customers, reservations, or discounts."
       >
         <section className="cars-grid">
           {adminLinks.map((item) => (

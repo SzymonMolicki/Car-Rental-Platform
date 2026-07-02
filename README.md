@@ -118,8 +118,10 @@ Main frontend routes:
 - `/login` - login
 - `/register` - customer registration
 - `/cars` - customer car browsing and rental flow
+- `/user` - customer dashboard
 - `/user/:userId` - customer profile
 - `/user/:userId/history` - rental history and invoice downloads
+- `/user/:userId/rent/payment` - customer rental payment flow
 - `/admin` - admin panel
 
 ---

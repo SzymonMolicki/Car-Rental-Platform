@@ -1,30 +1,55 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
-import { apiFetch, readJsonResponse } from "../../lib/api.js";
+import { downloadBlob, requestJson, saveBlob } from "../../lib/api.js";
+import { getSessionUserId } from "../../lib/auth.js";
 
 function formatDate(iso) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("pl-PL");
 }
 
+function formatFileDate(value) {
+  if (!value) return "date";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "date";
+
+  return date.toISOString().slice(0, 10);
+}
+
+function formatFilePart(value, fallback = "rental") {
+  const normalized = String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return normalized || fallback;
+}
+
 export default function UserHistoryPage({ session, onLogout }) {
+  const { userId: routeUserId } = useParams();
   const [rentals, setRentals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const userId = session?.payload?.sub ?? session?.sub;
+  const userId = routeUserId ?? getSessionUserId(session);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      setError("Missing user id.");
+      setLoading(false);
+      return;
+    }
 
     async function load() {
+      setLoading(true);
       try {
-        const response = await apiFetch(`/user/${userId}/history`, { token: session?.token });
-        const data = await readJsonResponse(response);
-
-        if (!response.ok) throw new Error(data?.detail || "Failed to load history");
+        const data = await requestJson(`/user/${userId}/history`, {
+          token: session?.token,
+          fallbackMessage: "Failed to load history",
+        });
 
         setRentals(Array.isArray(data) ? data : []);
       } catch (err) {
@@ -37,24 +62,14 @@ export default function UserHistoryPage({ session, onLogout }) {
     load();
   }, [userId, session?.token]);
 
-  async function downloadInvoice(rentalId) {
+  async function downloadInvoice(item) {
     try {
-      const response = await apiFetch(`/user/${userId}/history/${rentalId}/invoice`, { token: session?.token });
-
-      if (!response.ok) {
-        const data = await readJsonResponse(response);
-        throw new Error(data?.detail || "Failed to download invoice");
-      }
-
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = `invoice-${rentalId.slice(0, 8)}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(objectUrl);
+      const rentalId = item.rental_id;
+      const blob = await downloadBlob(`/user/${userId}/history/${rentalId}/invoice`, {
+        token: session?.token,
+        fallbackMessage: "Failed to download invoice",
+      });
+      saveBlob(blob, `invoice-${formatFilePart(item.car)}-${formatFileDate(item.start_date)}.pdf`);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not download invoice.");
     }
@@ -62,7 +77,7 @@ export default function UserHistoryPage({ session, onLogout }) {
 
   return (
     <PageShell session={session} onLogout={onLogout}>
-      <PageSection eyebrow="Customer" title="History" subtitle="Your past and upcoming rentals.">
+      <PageSection eyebrow="Your rentals" title="History" subtitle="Check rental dates, statuses, and available invoices.">
         <div className="hero-actions" style={{ marginTop: 0 }}>
           <Link className="back-link" to="/user">← Back to user area</Link>
         </div>
@@ -97,7 +112,7 @@ export default function UserHistoryPage({ session, onLogout }) {
 
                 {item.has_invoice && (
                   <div className="hero-actions">
-                    <button className="back-link" type="button" onClick={() => downloadInvoice(item.rental_id)}>
+                    <button className="back-link" type="button" onClick={() => downloadInvoice(item)}>
                       Download invoice
                     </button>
                   </div>
