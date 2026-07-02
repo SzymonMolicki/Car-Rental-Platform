@@ -581,6 +581,21 @@ h1 {
   gap: 12px;
 }
 
+.confirm-modal-body {
+  padding-top: 8px;
+}
+
+.confirm-modal-message {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.confirm-modal-footer {
+  justify-content: space-between;
+}
+
 .car-modal-close-btn {
   cursor: pointer;
   font: inherit;

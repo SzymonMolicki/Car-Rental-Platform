@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import AdminCarFormModal from "../../components/AdminCarFormModal.jsx";
 import CarModal from "../../components/CarModal.jsx";
+import ConfirmActionModal from "../../components/ConfirmActionModal.jsx";
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
 import { requestJson } from "../../lib/api.js";
 
@@ -15,6 +16,7 @@ export default function AdminCarsPage({ session, onLogout }) {
   const [selectedCar, setSelectedCar] = useState(null);
   const [editorCar, setEditorCar] = useState(null);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [pendingDeleteCar, setPendingDeleteCar] = useState(null);
 
   useEffect(() => {
     async function loadCars() {
@@ -57,8 +59,6 @@ export default function AdminCarsPage({ session, onLogout }) {
   }
 
   async function handleDeleteCar(car) {
-    if (!window.confirm(`Delete ${car.brand} ${car.model}?`)) return;
-
     try {
       await requestJson(`/admin/cars/${car.car_id}`, {
         token: session?.token,
@@ -68,6 +68,7 @@ export default function AdminCarsPage({ session, onLogout }) {
 
       setCars((previous) => previous.filter((item) => item.car_id !== car.car_id));
       setSelectedCar(null);
+      setPendingDeleteCar(null);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not delete car.");
     }
@@ -154,11 +155,21 @@ export default function AdminCarsPage({ session, onLogout }) {
               key="delete"
               className="button-pill button-pill-danger"
               type="button"
-              onClick={() => handleDeleteCar(selectedCar)}
+              onClick={() => setPendingDeleteCar(selectedCar)}
             >
               Delete car
             </button>,
           ]}
+        />
+      )}
+
+      {pendingDeleteCar && (
+        <ConfirmActionModal
+          title={`Delete ${pendingDeleteCar.brand} ${pendingDeleteCar.model}?`}
+          description="The vehicle will be removed from the admin catalog."
+          confirmLabel="Delete car"
+          onConfirm={() => handleDeleteCar(pendingDeleteCar)}
+          onClose={() => setPendingDeleteCar(null)}
         />
       )}
 

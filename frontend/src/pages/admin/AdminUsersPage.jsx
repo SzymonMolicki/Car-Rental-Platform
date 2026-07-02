@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import ConfirmActionModal from "../../components/ConfirmActionModal.jsx";
 import EntityDetailsModal from "../../components/EntityDetailsModal.jsx";
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
 import { requestJson } from "../../lib/api.js";
@@ -18,6 +19,7 @@ export default function AdminUsersPage({ session, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
+  const [pendingDeleteUser, setPendingDeleteUser] = useState(null);
 
   useEffect(() => {
     async function loadUsers() {
@@ -38,8 +40,6 @@ export default function AdminUsersPage({ session, onLogout }) {
   }, [session?.token]);
 
   async function handleDeleteUser(user) {
-    if (!window.confirm(`Delete ${user.first_name} ${user.last_name}?`)) return;
-
     try {
       await requestJson(`/admin/customers/${user.customer_id}`, {
         token: session?.token,
@@ -49,6 +49,7 @@ export default function AdminUsersPage({ session, onLogout }) {
 
       setUsers((previous) => previous.filter((item) => item.customer_id !== user.customer_id));
       setSelectedUser(null);
+      setPendingDeleteUser(null);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not delete user.");
     }
@@ -123,12 +124,22 @@ export default function AdminUsersPage({ session, onLogout }) {
               key="delete-user"
               className="button-pill button-pill-danger"
               type="button"
-              onClick={() => handleDeleteUser(selectedUser)}
+              onClick={() => setPendingDeleteUser(selectedUser)}
             >
               Delete user
             </button>,
           ]}
           onClose={() => setSelectedUser(null)}
+        />
+      )}
+
+      {pendingDeleteUser && (
+        <ConfirmActionModal
+          title={`Delete ${pendingDeleteUser.first_name} ${pendingDeleteUser.last_name}?`}
+          description="The customer account will be permanently removed."
+          confirmLabel="Delete user"
+          onConfirm={() => handleDeleteUser(pendingDeleteUser)}
+          onClose={() => setPendingDeleteUser(null)}
         />
       )}
     </PageShell>

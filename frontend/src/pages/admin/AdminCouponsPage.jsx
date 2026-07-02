@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
+import ConfirmActionModal from "../../components/ConfirmActionModal.jsx";
 import EntityDetailsModal from "../../components/EntityDetailsModal.jsx";
 import { PageShell, PageSection } from "../../components/PageShell.jsx";
 import { requestJson } from "../../lib/api.js";
@@ -14,6 +15,7 @@ export default function AdminCouponsPage({ session, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedCoupon, setSelectedCoupon] = useState(null);
+  const [pendingDeleteCoupon, setPendingDeleteCoupon] = useState(null);
 
   useEffect(() => {
     async function loadCoupons() {
@@ -34,8 +36,6 @@ export default function AdminCouponsPage({ session, onLogout }) {
   }, [session?.token]);
 
   async function handleDeleteCoupon(coupon) {
-    if (!window.confirm(`Delete coupon ${coupon.code}?`)) return;
-
     try {
       await requestJson(`/admin/discounts/${coupon.discount_id}`, {
         token: session?.token,
@@ -45,6 +45,7 @@ export default function AdminCouponsPage({ session, onLogout }) {
 
       setCoupons((previous) => previous.filter((item) => item.discount_id !== coupon.discount_id));
       setSelectedCoupon(null);
+      setPendingDeleteCoupon(null);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not delete coupon.");
     }
@@ -138,12 +139,22 @@ export default function AdminCouponsPage({ session, onLogout }) {
               key="delete-coupon"
               className="button-pill button-pill-danger"
               type="button"
-              onClick={() => handleDeleteCoupon(selectedCoupon)}
+              onClick={() => setPendingDeleteCoupon(selectedCoupon)}
             >
               Delete coupon
             </button>,
           ]}
           onClose={() => setSelectedCoupon(null)}
+        />
+      )}
+
+      {pendingDeleteCoupon && (
+        <ConfirmActionModal
+          title={`Delete coupon ${pendingDeleteCoupon.code}?`}
+          description="The discount will no longer be available to customers."
+          confirmLabel="Delete coupon"
+          onConfirm={() => handleDeleteCoupon(pendingDeleteCoupon)}
+          onClose={() => setPendingDeleteCoupon(null)}
         />
       )}
     </PageShell>
