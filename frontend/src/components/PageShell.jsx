@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Link, NavLink } from "react-router-dom";
 
-import metrocarLogo from "../../assets/metrocar_logo.svg";
+import metrocarLogo from "../../assets/metrocar_logo.svg?raw";
 import car1 from "../../assets/car1.svg";
 import car2 from "../../assets/car2.svg";
 import car3 from "../../assets/car3.svg";
@@ -74,7 +74,11 @@ export function PageShell({ session, onLogout, children }) {
       <header className="site-top-panel">
         <div className="site-top-panel-inner">
           <Link className="brand-link" to="/">
-            <img className="brand-logo" src={metrocarLogo} alt="" aria-hidden="true" />
+            <div
+              aria-hidden="true"
+              className="brand-logo"
+              dangerouslySetInnerHTML={{ __html: MetrocarLogo }}
+            />
             MetroCars
           </Link>
 
