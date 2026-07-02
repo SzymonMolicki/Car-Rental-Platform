@@ -276,7 +276,6 @@ a {
 }
 
 
-
 .strip-car {
   width: 82px;
   height: 56px;
@@ -284,6 +283,29 @@ a {
   filter: brightness(0) saturate(0) invert(95%);
   opacity: 0.98;
   flex: 0 0 auto;
+}
+
+.info-strip-button {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: clamp(72px, 8vw, 112px);
+  height: 120px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.2s ease;
+}
+
+.info-strip-button:hover {
+  background: rgba(255, 231, 92, 0.1);
+}
+
+.info-strip-button:focus {
+  outline: 2px solid #ffe75c;
+  outline-offset: 2px;
 }
 
 @media (max-width: 900px) {

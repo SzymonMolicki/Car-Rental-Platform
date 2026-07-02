@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import MetrocarLogo from "./../assets/metrocar_logo.svg?raw";
 import Car1 from "./../assets/car-bg1.svg?raw";
+import metroZubr from "./../assets/metrozubr.png";
 import Car2 from "./../assets/car-bg2.svg?raw";
 import Car3 from "./../assets/car-bg3.svg?raw";
 import Car4 from "./../assets/car-bg4.svg?raw";
@@ -102,6 +103,7 @@ function BoardBackdrop() {
 
 export default function App() {
   const [session, setSession] = useState(() => getStoredSession());
+  const [showInfoModal, setShowInfoModal] = useState(false);
 
   function handleLogin(token) {
     const nextSession = persistSession(token);
@@ -133,6 +135,51 @@ export default function App() {
   return (
     <>
       <BoardBackdrop />
+
+
+      {/* Invisible button on right strip */}
+      <button
+        onClick={() => setShowInfoModal(true)}
+        className="info-strip-button"
+        aria-label="Show information"
+      />
+
+      {/* Info Modal */}
+      {showInfoModal && (
+        <div className="car-modal-backdrop" onClick={() => setShowInfoModal(false)}>
+          <div className="car-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="car-modal-close"
+              onClick={() => setShowInfoModal(false)}
+              aria-label="Close modal"
+            >
+              ✕
+            </button>
+            <div className="car-modal-header">
+              <h2 className="car-modal-title">Welcome to MetroCar</h2>
+              <p className="car-modal-description">
+                Your premium car rental service
+              </p>
+            </div>
+            <div className="car-modal-body">
+              <img 
+                src={metroZubr}
+                alt="MetroCar service"
+                style={{
+                  width: '100%',
+                  borderRadius: '12px',
+                  marginBottom: '16px',
+                  border: '2px solid #2c2b2c'
+                }}
+              />
+              <p style={{ margin: '0', lineHeight: '1.6', color: '#2c2b2c' }}>
+                Prowadzić metrocar to nie tylko wynajem samochodów, to doświadczenie, które łączy wygodę, komfort i niepowtarzalne wrażenia, Pod wpływem. Oczywiście pod wpływem metrożubra. Teraz w pakiecie odpowiedzialnego kierowcy.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Routes>
         <Route path="/" element={<HomePage session={session} onLogout={handleLogout} />} />
         <Route
