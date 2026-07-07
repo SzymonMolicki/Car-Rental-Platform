@@ -1,0 +1,87 @@
+\section{Running the Application}
+
+\subsection{Runtime Environment}
+
+The application is intended to be started as a Docker Compose environment. This approach keeps the frontend, backend and database configuration consistent across development machines and does not require manual installation of PostgreSQL, Python dependencies or Node.js packages on the host system.
+
+The local environment consists of three services:
+
+\begin{itemize}
+    \item \texttt{frontend} -- the React/Vite client application exposed on port \texttt{5173};
+    \item \texttt{backend} -- the FastAPI application exposed on port \texttt{8000};
+    \item \texttt{db} -- the PostgreSQL database exposed on port \texttt{5432}.
+\end{itemize}
+
+Before starting the system, Docker and Docker Compose must be available on the workstation. Docker can be downloaded from the official documentation page: \url{https://docs.docker.com/get-started/get-docker/}. After installation, the environment can be verified with the \texttt{docker --version} and \texttt{docker compose version} commands.
+
+All commands used to run the project should be executed from the root directory of the project repository.
+
+\subsection{Environment Configuration}
+
+The backend reads sensitive and environment-specific settings from a local \texttt{.env} file. A template file is provided in the repository and can be copied before the first run:
+
+\begin{verbatim}
+cp .env.example .env
+\end{verbatim}
+
+The required variables are:
+
+\begin{itemize}
+    \item \texttt{SECRET\_KEY} -- the key used for signing authentication tokens,
+    \item \texttt{ADMIN\_USERNAME} -- the default administrator login,
+    \item \texttt{ADMIN\_PASSWORD\_HASH} -- the Argon2id hash of the administrator password.
+\end{itemize}
+
+For local development and presentation purposes, the example configuration provides an administrator account with the username \texttt{admin} and the password \texttt{admin}. In a production deployment, these values should be replaced with secure, environment-specific credentials.
+
+\subsection{Starting the Services}
+
+The complete application stack can be built and started with one command:
+
+\begin{verbatim}
+docker compose up --build
+\end{verbatim}
+
+Docker Compose builds the backend and frontend images, starts the PostgreSQL container, waits until the database is healthy, and then starts the backend and frontend services. The backend container is configured to use the internal Docker database address \texttt{db:5432}, while the services remain accessible from the host machine through their mapped ports.
+
+\subsection{Database Initialization}
+
+After the containers are running, the database schema must be created by applying Alembic migrations inside the backend container:
+
+\begin{verbatim}
+docker compose exec backend alembic upgrade head
+\end{verbatim}
+
+The project also includes an optional seed script that prepares the database for local demonstration and testing:
+
+\begin{verbatim}
+docker compose exec backend python seed.py
+\end{verbatim}
+
+\subsection{Accessing the Application}
+
+Once the services are running and the database has been initialized, the system can be accessed through the following local addresses:
+
+\begin{itemize}
+    \item frontend application: \url{http://localhost:5173},
+    \item API root: \url{http://localhost:8000},
+    \item Swagger API documentation: \url{http://localhost:8000/docs}.
+\end{itemize}
+
+The Swagger interface is useful for verifying backend availability and for testing individual API endpoints independently from the frontend.
+
+\subsection{Stopping and Resetting the Environment}
+
+The running containers can be stopped without removing the database volume by using:
+
+\begin{verbatim}
+docker compose down
+\end{verbatim}
+
+If a clean database state is required, the PostgreSQL volume can be removed as well:
+
+\begin{verbatim}
+docker compose down -v
+\end{verbatim}
+
+After removing the volume, the application should be started again, migrations should be applied, and the seed script should be executed once more. This recreates the complete local environment from an empty database.

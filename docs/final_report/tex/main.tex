@@ -1,0 +1,116 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{setspace}
+\usepackage{tikz}
+
+\usetikzlibrary{positioning}
+
+\definecolor{accent}{HTML}{25324A}
+\definecolor{textgray}{HTML}{4D596A}
+\definecolor{linegray}{HTML}{D9DEE7}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=accent,
+    urlcolor=accent,
+    citecolor=accent,
+    pdftitle={Car Rental Company - Final Project Report},
+    pdfauthor={Project Team}
+}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\renewcommand{\arraystretch}{1.22}
+\titleformat{\section}{\Large\bfseries\color{accent}}{}{0pt}{}
+\titleformat{\subsection}{\normalsize\bfseries\color{accent}}{}{0pt}{}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[R]{\footnotesize\color{textgray} Car Rental Company}
+\fancyfoot[C]{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0pt}
+
+\renewcommand{\familydefault}{\sfdefault}
+
+\newcommand{\projectTitle}{Car Rental Company}
+\newcommand{\academicYear}{2025/2026}
+\newcommand{\groupSection}{Informatics, Section 6}
+
+\newcommand{\universityLogo}{polsl_logo.png}
+\newcommand{\facultyLogo}{aei_logo.jpeg}
+
+\newcommand{\logobox}[2]{%
+  \begingroup
+  \setlength{\fboxsep}{0pt}%
+  \IfFileExists{#1}{\includegraphics[height=#2]{#1}}{%
+    \fbox{\rule{0pt}{#2}\rule{0.2\linewidth}{0pt}\parbox[c][#2][c]{0.2\linewidth}{\centering Logo}}%
+  }%
+  \endgroup
+}
+
+\begin{document}
+\begin{titlepage}
+    \centering
+
+    \begin{minipage}{0.45\linewidth}
+        \centering
+        \logobox{\universityLogo}{4.5cm}\\[0.4cm]
+    \end{minipage}
+    \hfill
+    \begin{minipage}{0.45\linewidth}
+        \centering
+        \logobox{\facultyLogo}{3.5cm}\\[0.4cm]
+    \end{minipage}
+
+    \vspace{3.2cm}
+
+    \begin{tikzpicture}
+        \node[draw=black!30, fill=black!5, rounded corners=10pt, inner sep=16pt, text width=0.9\linewidth, align=center] {
+            {\LARGE \textbf{\projectTitle}} \\[0.4cm]
+            {\Large Final Project Report}
+        };
+    \end{tikzpicture}
+
+    \vspace{3cm}
+
+    \begin{flushleft}
+    \setstretch{1.4}
+    \textbf{Team members:} \\
+    Tymoteusz Kłoska \\
+    Szymon Molicki \\
+    Mateusz Znaleźniak \\
+    Filipa Delfino \\[0.5cm]
+    \textbf{Academic year:} \academicYear \\[0.2cm]
+    \textbf{Section:} \groupSection \\[0.2cm]
+    \textbf{Supervisor:} Hafedh Zghidi \\[0.5cm]
+    \textbf{Date:} \today
+    \end{flushleft}
+
+    \vfill
+    \centering
+
+\end{titlepage}
+
+\tableofcontents
+
+\input{chapters/introduction}
+\input{chapters/functional_scope}
+\input{chapters/technologies_and_system_architecture}
+\input{chapters/db_design}
+\input{chapters/implementation_overview}
+\input{chapters/running the_application}
+\input{chapters/summary}
+
+\end{document}
