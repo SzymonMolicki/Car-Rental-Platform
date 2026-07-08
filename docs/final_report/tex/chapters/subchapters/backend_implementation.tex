@@ -1,1 +1,153 @@
 \subsection{Backend Implementation}
+
+The backend was implemented as a FastAPI application responsible for exposing the REST API, validating rental rules, communicating with the PostgreSQL database and keeping reservations, payments and invoices consistent. The code is divided into several main layers: \texttt{api} contains HTTP endpoints, \texttt{models} contains SQLAlchemy ORM classes, \texttt{schemas} contains Pydantic request and response models, \texttt{services} contains reusable business logic, and \texttt{core} contains infrastructure code such as configuration, security, database sessions, and time helpers.
+
+The application entry point creates the FastAPI instance, configures CORS for the frontend and registers routers for authentication, customer operations, administrator operations and lookup data. Database access is handled through SQLAlchemy sessions injected into endpoints with FastAPI dependencies. Schema evolution and lookup-table seed data are managed with Alembic migrations.
+
+\subsubsection{Database Communication}
+
+Communication with the database is implemented with SQLAlchemy. The backend reads the database connection string from the \texttt{DATABASE\_URL} environment variable, creates a shared SQLAlchemy engine and then creates short-lived sessions for individual requests. Endpoints receive the session through the \texttt{get\_db} dependency, which ensures that the session is closed after the request is processed.
+
+\begin{lstlisting}[style=pythonstyle,caption={Database engine and request-scoped session},label={lst:backend-db-short}]
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+\end{lstlisting}
+
+The same session is passed to service functions when more complex business logic is required. This allows a single operation, such as creating a reservation or processing a payment, to read data, validate relationships, insert records and commit changes as one transaction. For read and write operations the backend uses SQLAlchemy ORM models, while migrations and initial lookup data are managed separately with Alembic.
+
+\subsubsection{Request and Response Schemas}
+
+The API contract is separated from database models with Pydantic schemas. Request schemas define what data the frontend is allowed to send, while response schemas control which fields are returned to the client. This keeps SQLAlchemy models internal to the backend and provides an additional validation layer before data reaches business logic or database operations.
+
+\subsubsection{Authentication and Authorization}
+
+Authentication is based on JWT access tokens. Passwords are hashed with Argon2. Protected endpoints use dependencies to check the token payload. Customer routes require a customer account, while administrator routes require the \texttt{admin} role. This keeps access control close to the API layer and avoids duplicating role checks inside every endpoint.
+
+\begin{lstlisting}[style=pythonstyle,caption={JWT payload validation and role guards},label={lst:backend-auth-short}]
+def get_current_payload(credentials=Depends(bearer_scheme)) -> dict[str, Any]:
+    try:
+        return jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+    except InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+def require_admin(payload=Depends(get_current_payload)) -> dict[str, Any]:
+    if payload.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return payload
+
+
+def require_customer(payload=Depends(get_current_payload)) -> dict[str, Any]:
+    if payload.get("account_type") != "customer":
+        raise HTTPException(status_code=403, detail="Customer access required")
+    return payload
+\end{lstlisting}
+
+\subsubsection{Customer Registration and Validation}
+
+Customer registration creates both the customer account and the related address record. Before saving data, the backend normalizes the e-mail address, checks whether it is already registered, hashes the password, validates the customer's age and verifies the driver's license data. The same validation service is reused later during profile updates and rental creation, which keeps customer-related rules consistent across the application.
+
+\subsubsection{Reservation Flow}
+
+The most important customer operation is creating a rental reservation. The endpoint validates the requested date range, rejects rentals in the past, checks the customer's age and driver's license, locks the selected car row, verifies that the car is not in an excluded status and checks whether there are conflicting rentals for the same period.
+
+\begin{lstlisting}[style=pythonstyle,caption={Creating a rental reservation},label={lst:backend-rent-short}]
+@router.post("/rent", response_model=RentalResponse, status_code=status.HTTP_201_CREATED)
+def rent_car(payload: CarRentalRequest, current_customer=Depends(get_current_customer), db=Depends(get_db)) -> Rental:
+    now = utc_now()
+    # ... validate dates, customer age, driver's license and locations ...
+
+    car = _get_locked_car_or_404(db, payload.car_id)
+    if db.get(CarStatus, car.car_status_id).name in EXCLUDED_CAR_STATUSES:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Car is not available for rental")
+
+    start_datetime, planned_end_datetime = normalize_rental_day_range(...)
+    availability = check_car_availability_for_period(db, payload.car_id, start_datetime, planned_end_datetime, now=now)
+    if not availability.is_available:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Car is not available")
+
+    rental = Rental(
+        customer_id=current_customer.customer_id,
+        car_id=payload.car_id,
+        # ... locations, reserved status and date range ...
+    )
+    db.add(rental)
+    db.commit()
+    return rental
+\end{lstlisting}
+
+\subsubsection{Rental Lifecycle}
+
+Rental state is controlled by a service module instead of being hard-coded in individual endpoints. A newly created unpaid rental receives the \texttt{reserved} status and blocks the car only for a short payment hold. Paid reservations block the period permanently, active rentals block the car immediately and expired unpaid reservations are cancelled automatically.
+
+\begin{lstlisting}[style=pythonstyle,caption={Core availability rule for rentals},label={lst:backend-availability-short}]
+ACTIVE_STATUS = "active"
+RESERVATION_HOLD_MINUTES = 5
+
+
+def check_car_availability_for_period(db: Session, car_id: UUID, start_date: datetime, planned_end_date: datetime) -> CarAvailabilityResult:
+    now = utc_now()
+    conflicts = db.execute(...).all()
+    paid_ids = _paid_rental_ids(db, [rental.rental_id for rental, _ in conflicts])
+
+    for rental, status_name in conflicts:
+        if status_name == ACTIVE_STATUS or rental.rental_id in paid_ids:
+            return CarAvailabilityResult(is_available=False)
+        if is_reservation_hold_active(created_at=rental.created_at, now=now):
+            return CarAvailabilityResult(is_available=False)
+        # ... expired unpaid reservation is marked as cancelled ...
+
+    return CarAvailabilityResult(is_available=True)
+\end{lstlisting}
+
+The same service also updates paid rentals according to dates: future rentals remain \texttt{reserved}, currently running rentals become \texttt{active}, finished rentals become \texttt{completed}. This makes the rental history reflect current business state.
+
+\subsubsection{Payments and Invoices}
+
+Payment finalizes a reservation. The backend verifies ownership of the rental, checks the payment method, rejects expired unpaid reservations, calculates the rental price from the number of days and the car's daily rate, applies an optional discount, creates an invoice and updates the rental lifecycle. Invoice PDF generation is implemented separately with ReportLab and is available as a downloadable \texttt{pdf} response.
+
+\begin{lstlisting}[style=pythonstyle,caption={Payment and invoice creation},label={lst:backend-payment-short}]
+@router.post("/payment", response_model=InvoiceResponse)
+def pay_for_rental(payload: RentalPaymentRequest, current_customer=Depends(get_current_customer), db=Depends(get_db)) -> Invoice:
+    rental = db.get(Rental, payload.rental_id)
+    if rental is None or rental.customer_id != current_customer.customer_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rental not found")
+
+    now = utc_now()
+    if not is_reservation_hold_active(created_at=rental.created_at, now=now):
+        # ... mark rental as cancelled ...
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Reservation expired")
+
+    car = db.get(Car, rental.car_id)
+    rental_days = count_rental_days(rental.start_date, rental.planned_end_date)
+    base_amount = (car.daily_rate * rental_days).quantize(Decimal("0.01"))
+    discount_amount = Decimal("0.00")
+    # ... validate optional discount code and calculate discount_amount ...
+
+    invoice = Invoice(
+        rental_id=rental.rental_id,
+        total_amount=base_amount - discount_amount,
+        paid_at=now,
+        # ... payment method, invoice number and statuses ...
+    )
+
+    db.add(invoice)
+    db.commit()
+    apply_paid_rental_lifecycle_status(db, rental, now=now)
+    db.commit()
+    return invoice
+\end{lstlisting}
+
+\subsubsection{Consistency}
+
+The backend uses multiple consistency mechanisms: Pydantic schemas validate request payloads, SQLAlchemy transactions group related database changes, service functions enforce domain rules and database constraints catch duplicates or invalid relations. Invalid operations are translated into appropriate HTTP responses, for example \texttt{400 Bad Request} for validation errors, \texttt{404 Not Found} for missing records, \texttt{403 Forbidden} for unauthorized access, and \texttt{409 Conflict} for unavailable cars or expired reservations.

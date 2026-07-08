@@ -12,6 +12,7 @@
 \usepackage{tabularx}
 \usepackage{longtable}
 \usepackage{hyperref}
+\usepackage{listings}
 \usepackage{titlesec}
 \usepackage{fancyhdr}
 \usepackage{setspace}
@@ -22,6 +23,13 @@
 \definecolor{accent}{HTML}{25324A}
 \definecolor{textgray}{HTML}{4D596A}
 \definecolor{linegray}{HTML}{D9DEE7}
+\definecolor{codebg}{HTML}{F6F8FA}
+\definecolor{codeframe}{HTML}{D0D7DE}
+\definecolor{pykeyword}{HTML}{005CC5}
+\definecolor{pystring}{HTML}{032F62}
+\definecolor{pycomment}{HTML}{6A737D}
+\definecolor{pyfunction}{HTML}{6F42C1}
+\definecolor{pynumber}{HTML}{005CC5}
 \hypersetup{
     colorlinks=true,
     linkcolor=accent,
@@ -29,6 +37,33 @@
     citecolor=accent,
     pdftitle={Car Rental Company - Final Project Report},
     pdfauthor={Project Team}
+}
+
+\lstdefinestyle{pythonstyle}{
+    language=Python,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{pykeyword}\bfseries,
+    stringstyle=\color{pystring},
+    commentstyle=\color{pycomment}\itshape,
+    numberstyle=\tiny\color{textgray},
+    emph={
+        FastAPI,APIRouter,Depends,HTTPException,Session,select,status,
+        Rental,Invoice,Customer,Car,RentalStatus,PaymentStatus,InvoiceStatus
+    },
+    emphstyle=\color{pyfunction},
+    backgroundcolor=\color{codebg},
+    frame=single,
+    rulecolor=\color{codeframe},
+    numbers=left,
+    stepnumber=1,
+    numbersep=8pt,
+    showstringspaces=false,
+    columns=fullflexible,
+    keepspaces=true,
+    tabsize=4,
+    breaklines=true,
+    breakatwhitespace=false,
+    captionpos=b
 }
 
 \setlength{\parindent}{0pt}
