@@ -1,1 +1,109 @@
 \subsection{Frontend Implementation}
+
+The frontend of \projectTitle{} is a high-performance Single Page Application (SPA) built with \textbf{React 18} and \textbf{Vite}. The implementation emphasizes a modular component architecture, smooth visual feedback, and a clear separation between administrative and customer interfaces.
+
+
+
+
+\subsubsection{Routing and Access Control}
+The application utilizes \texttt{react-router-dom} for navigation. 
+Access to specific parts of the system is managed through higher-order components called \textbf{Route Guards}:
+\begin{itemize}
+    \item \textbf{AppRouteGuard:} Restricts access to authenticated users based on their role (\texttt{customer} or \texttt{admin}).
+    \item \textbf{GuestRoute:} Redirects authenticated users away from login and registration pages to their respective dashboards.
+\end{itemize}
+
+
+\subsubsection{Role-Based Functional Views}
+The frontend differentiates between consumer-facing and management-facing logic:
+\begin{itemize}
+    \item \textbf{Customer Experience:} Focused on the \texttt{CarsPage}, which features a responsive grid of "Car Cards." Each card is interactive, allowing users to open a detailed modal or jump directly into the multi-step \texttt{UserRentPaymentPage} using React Router's \texttt{state} to pass car data.
+    \item \textbf{Administrative Oversight:} Modules like \texttt{AdminUsersPage} provide CRUD (Create, Read, Update, Delete) capabilities. Administrative actions, such as user deletion, are protected by \texttt{ConfirmActionModal} to prevent accidental data loss.
+\end{itemize}
+
+The routing structure is divided into three primary modules:
+\begin{enumerate}
+    \item \textbf{Public:} Home, Login, and Signup pages.
+    \item \textbf{Customer:} Car browsing (\texttt{/cars}), personal profile management, rental history, and the multi-step payment flow.
+    \item \textbf{Admin:} Dashboard for fleet management, customer oversight, reservation tracking, and discount code configuration.
+\end{enumerate}
+
+\subsubsection{Core Layout and Component Architecture}
+The application utilizes a "Shell" pattern to maintain a consistent user experience across different views. 
+\begin{itemize}
+    \item \textbf{PageShell:} A top-level wrapper that manages the primary navigation (\texttt{site-top-panel}) and global decorative elements. It uses role-based logic to conditionally render navigation links for \textit{Customers} (e.g., Profile, History, Cars) or \textit{Admins} (e.g., Users, Reservations, Coupons).
+    \item \textbf{PageSection:} A structural component that standardizes page headers, providing consistent "eyebrows," titles, and action areas for all system modules.
+    \item \textbf{Modal Orchestration:} The system uses specialized modals like \texttt{CarModal} and \texttt{EntityDetailsModal}. A notable implementation detail is the "Safe Value Unwrapping" logic, which ensures that complex data objects (such as nested JSON for car brands or fuel types) are correctly rendered as strings without causing React rendering errors.
+\end{itemize}
+
+
+
+\subsubsection{State Management and Session Persistence}
+User sessions are managed using React's \texttt{useState} and \texttt{useEffect} hooks. 
+Authentication tokens are persisted in local storage. 
+The application monitors session expiration and includes a global event listener for \texttt{metrocars:unauthorized} 
+events to automatically log users out if their token becomes invalid.
+
+\subsubsection{Data Persistence and API Integration}
+Communication with the FastAPI backend is centralized through a \texttt{requestJson} utility. This helper manages:
+\begin{itemize}
+    \item \textbf{JWT Injection:} Automatically attaches the Bearer token from the session state to every outgoing request.
+    \item \textbf{Error Handling:} Provides fallback messaging and captures backend exceptions to update the UI's \texttt{error} state variables.
+    \item \textbf{Loading States:} Every data-driven view (like \texttt{CarsPage} or \texttt{AdminUsersPage}) manages a \texttt{loading} boolean to show visual feedback during network latency.
+\end{itemize}
+
+\subsubsection{UI/UX Design and Visual Identity}
+The interface employs a distinctive "Metro" theme characterized by a high-contrast palette (\texttt{\#2C2B2C} and \texttt{\#FFE75C}). Key visual features include:
+\begin{itemize}
+    \item \textbf{Dynamic Backdrop:} A \texttt{BoardBackdrop} component generates a procedurally placed grid of car SVGs and company logos that scales with the window size.
+    \item \textbf{Motion Strips:} CSS-animated "motion strips" on the sides of the car browsing page simulate a road environment, enhancing the thematic consistency of the rental experience.
+    \item \textbf{Interactive Components:} Custom-styled "button-pills" and "car-cards" provide a tactile feel with hover transformations and depth-based box shadows.
+\end{itemize}
+
+
+\subsubsection{Responsive Design and Theming}
+The system uses a custom CSS architecture defined in \texttt{index.css}. 
+It leverages CSS Variables (e.g., \texttt{--panel-accent}) and \texttt{backdrop-filter: blur()} to create a modern, layered glassmorphism effect. 
+The application uses a mobile-first approach with CSS Grid and Flexbox. Using \texttt{clamp()} functions and media queries, 
+the layout adapts from a multi-column desktop view (including the decorative motion strips) to a streamlined single-column view for mobile devices, 
+ensuring accessibility across all platforms.
+
+
+\subsubsection{Dynamic Visuals and Parallax Effects}
+A key aesthetic feature of \projectTitle{} is the \texttt{CarMotionStrip}. Unlike static images, this component implements a scroll-driven parallax effect:
+\begin{itemize}
+    \item It utilizes \textbf{requestAnimationFrame} for high-performance 60fps animations.
+    \item The system calculates the scroll position with a \texttt{0.35} multiplier to create a sense of depth as cars move vertically in the background.
+    \item \textbf{GPU Acceleration:} The use of \texttt{translate3d(0, y, 0)} ensures that the animation is offloaded to the browser's hardware acceleration, preventing layout thrashing during heavy scrolling.
+\end{itemize}
+
+\begin{lstlisting}[style=pythonstyle, caption=High-Performance Scroll Animation Logic]
+function updatePosition() {
+  const loopHeight = track.scrollHeight / 2;
+  // Calculate offset based on scroll position for parallax effect
+  const travel = (window.scrollY * 0.35 * direction) % loopHeight;
+  const offset = travel < 0 ? travel + loopHeight : travel;
+  // Apply hardware-accelerated transform
+  track.style.transform = `translate3d(0, ${-offset}px, 0)`;
+}
+\end{lstlisting}
+
+
+\subsubsection{Interactive Features and Easter Eggs}
+To enhance user engagement, the application includes hidden interactive elements. A specialized \textbf{MetroŻubr Easter Egg} is implemented via an invisible trigger on the interface's right margin, which opens a modal featuring unique brand-specific content. This demonstrates the use of React Portals and conditional rendering for non-intrusive UI additions.
+
+\begin{lstlisting}[style=pythonstyle, caption=Snippet of App Routing and Guards]
+<Routes>
+  <Route path="/" element={<HomePage session={session} />} />
+  <Route path="/admin/cars" element={
+    <AppRouteGuard session={session} allowedRoles={["admin"]}>
+      <AdminCarsPage />
+    </AppRouteGuard>
+  } />
+  <Route path="/user/rent/payment" element={
+    <AppRouteGuard session={session} allowedRoles={["customer"]}>
+      <UserRentPaymentPage />
+    </AppRouteGuard>
+  } />
+</Routes>
+\end{lstlisting}

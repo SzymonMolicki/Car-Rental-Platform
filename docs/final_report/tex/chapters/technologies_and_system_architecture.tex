@@ -1,7 +1,128 @@
 \section{Technologies and System Architecture}
 
+This section describes the technical foundation of the \projectTitle{} system, detailing the chosen technology stack, the high-level system architecture, and the communication protocols between components.
+
 \subsection{Technology Stack}
+
+The system is built using modern, industry-standard technologies to ensure scalability, security, and developer productivity. The stack is divided into three primary layers:
+
+\begin{itemize}
+    \item \textbf{Backend:} 
+    \begin{itemize}
+        \item \textbf{Python 3.12:} The core programming language.
+        \item \textbf{FastAPI:} A modern, high-performance web framework for building APIs with Python based on standard Python type hints.
+        \item \textbf{SQLAlchemy:} An SQL toolkit and Object-Relational Mapper (ORM) that provides a full suite of well-known enterprise-level persistence patterns.
+        \item \textbf{Alembic:} A lightweight database migration tool for usage with SQLAlchemy.
+        \item \textbf{Argon2id:} Used for secure password hashing via the Passlib library.
+    \end{itemize}
+    
+    \item \textbf{Frontend:}
+    \begin{itemize}
+        \item \textbf{React:} A JavaScript library for building user interfaces.
+        \item \textbf{Vite:} A build tool that provides a faster and leaner development experience for modern web projects.
+        \item \textbf{Tailwind CSS:} (Optional/Assumed) For modern, responsive styling.
+    \end{itemize}
+    
+    \item \textbf{Data \& Infrastructure:}
+    \begin{itemize}
+        \item \textbf{PostgreSQL:} A powerful, open-source object-relational database system.
+        \item \textbf{Docker \& Docker Compose:} Used for containerization and orchestration of the various services to ensure environment consistency.
+    \end{itemize}
+\end{itemize}
 
 \subsection{System Architecture}
 
+The \projectTitle{} application follows a \textbf{Client-Server architecture} orchestrated via Docker containers. The system is decomposed into three main services that interact within a virtual network.
+
+\begin{figure}[h]
+    \centering
+    \begin{tikzpicture}[
+        node distance=2cm,
+        service/.style={rectangle, draw=accent, fill=codebg, thick, minimum width=3cm, minimum height=1.2cm, align=center, rounded corners=2pt},
+        database/.style={cylinder, draw=accent, fill=codebg, thick, minimum width=2.5cm, minimum height=1.5cm, shape border rotate=90, align=center}
+    ]
+        % Nodes
+        \node[service] (frontend) {\textbf{Frontend Service} \\ (React/Vite) \\ Port: 5173};
+        \node[service, right=2.5cm of frontend] (backend) {\textbf{Backend Service} \\ (FastAPI) \\ Port: 8000};
+        \node[database, below=1.5cm of backend] (db) {\textbf{Database} \\ (PostgreSQL) \\ Port: 5432};
+
+        % Arrows
+        \draw[<->, thick, accent] (frontend) -- node[above, font=\footnotesize] {HTTP / JSON} (backend);
+        \draw[<->, thick, accent] (backend) -- node[right, font=\footnotesize] {SQLAlchemy} (db);
+    \end{tikzpicture}
+    \caption{High-level System Architecture Diagram}
+\end{figure}
+
+\subsubsection{Containerization}
+The application is managed using \texttt{docker-compose.yml}, which defines three services:
+\begin{enumerate}
+    \item \textbf{Frontend:} Serves the React single-page application (SPA).
+    \item \textbf{Backend:} Runs the FastAPI server, handling business logic and API requests.
+    \item \textbf{DB:} A PostgreSQL instance that persists all system data.
+\end{enumerate}
+
+\subsection{Authentication and Security}
+
+The system implements \textbf{JWT (JSON Web Token)} Bearer authentication. 
+\begin{itemize}
+    \item \textbf{Identity Management:} When a user logs in, the backend validates credentials using Argon2id hashing.
+    \item \textbf{Token Issuance:} Upon successful validation, the server issues a JWT signed with a \texttt{SECRET\_KEY}.
+    \item \textbf{Authorization:} Subsequent requests include the token in the \texttt{Authorization} header. The backend uses FastAPI Dependency Injection to verify roles (Customer vs. Admin).
+\end{itemize}
+
+\subsection{Database Persistence and Migrations}
+
+Data integrity is managed through SQLAlchemy models. To handle evolution of the data schema without data loss, \textbf{Alembic} is used for migrations.
+
+\begin{lstlisting}[style=pythonstyle, caption=Example of a Database Migration Command]
+# Applying migrations to the database
+docker compose exec backend alembic upgrade head
+\end{lstlisting}
+
+The system also includes a deterministic seeding script (\texttt{seed.py}) that populates the database with 12 locations, 50 cars, and 100 customers, ensuring a consistent testing environment across different developer machines.
+
+\subsection{API Design}
+
+The API is designed following \textbf{RESTful principles}. It provides separated endpoints for public, customer, and administrative access. 
+
+\begin{itemize}
+    \item \textbf{Public:} Login and registration.
+    \item \textbf{Customer:} Managing profile, booking rentals, and downloading invoices.
+    \item \textbf{Admin:} Full CRUD (Create, Read, Update, Delete) operations on fleet, customers, and discount codes.
+\end{itemize}
+
+Documentation is automatically generated via \textbf{Swagger UI}, available at the \texttt{/docs} endpoint of the backend service.
+
 \subsection{Application Deployment}
+
+The system is designed to be environment-agnostic using containerization. The deployment process is managed via Docker Compose, which orchestrates the lifecycle of the frontend, backend, and database services.
+
+\subsubsection{Environment Configuration}
+Before deployment, the system requires an environment configuration file (\texttt{.env}). This file defines sensitive information and system-wide constants, including:
+\begin{itemize}
+    \item \texttt{SECRET\_KEY}: A unique key used for signing JWT tokens.
+    \item \texttt{DATABASE\_URL}: Connection string for the PostgreSQL instance.
+    \item \texttt{ADMIN\_CREDENTIALS}: Initial setup for the administrative user (hashed via Argon2id).
+\end{itemize}
+
+\subsubsection{Deployment Steps}
+To deploy the application in a development or production-ready state, the following sequence of commands is executed:
+
+\begin{lstlisting}[style=pythonstyle, language=bash, caption=System Deployment Commands]
+# 1. Build and start the containers
+docker compose up --build -d
+
+# 2. Run database migrations to create the schema
+docker compose exec backend alembic upgrade head
+
+# 3. Populate the database with initial demo data
+docker compose exec backend python seed.py
+\end{lstlisting}
+
+\subsubsection{Service Access}
+Once deployed, the system components are accessible at the following local endpoints:
+\begin{itemize}
+    \item \textbf{Frontend Application:} \href{http://localhost:5173}{http://localhost:5173}
+    \item \textbf{REST API Root:} \href{http://localhost:8000}{http://localhost:8000}
+    \item \textbf{Interactive API Documentation (Swagger):} \href{http://localhost:8000/docs}{http://localhost:8000/docs}
+\end{itemize}
