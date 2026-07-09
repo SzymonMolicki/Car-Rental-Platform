@@ -20,9 +20,8 @@ The system is built using modern, industry-standard technologies to ensure scala
     \begin{itemize}
         \item \textbf{React:} A JavaScript library for building user interfaces.
         \item \textbf{Vite:} A build tool that provides a faster and leaner development experience for modern web projects.
-        \item \textbf{Tailwind CSS:} (Optional/Assumed) For modern, responsive styling.
     \end{itemize}
-    
+
     \item \textbf{Data \& Infrastructure:}
     \begin{itemize}
         \item \textbf{PostgreSQL:} A powerful, open-source object-relational database system.
@@ -63,7 +62,7 @@ The application is managed using \texttt{docker-compose.yml}, which defines thre
 
 \subsection{Authentication and Security}
 
-The system implements \textbf{JWT (JSON Web Token)} Bearer authentication. 
+The system implements \textbf{JWT (JSON Web Token)} Bearer authentication.
 \begin{itemize}
     \item \textbf{Identity Management:} When a user logs in, the backend validates credentials using Argon2id hashing.
     \item \textbf{Token Issuance:} Upon successful validation, the server issues a JWT signed with a \texttt{SECRET\_KEY}.
@@ -83,7 +82,7 @@ The system also includes a deterministic seeding script (\texttt{seed.py}) that 
 
 \subsection{API Design}
 
-The API is designed following \textbf{RESTful principles}. It provides separated endpoints for public, customer, and administrative access. 
+The API is designed following \textbf{RESTful principles}. It provides separated endpoints for public, customer, and administrative access.
 
 \begin{itemize}
     \item \textbf{Public:} Login and registration.
@@ -92,37 +91,3 @@ The API is designed following \textbf{RESTful principles}. It provides separated
 \end{itemize}
 
 Documentation is automatically generated via \textbf{Swagger UI}, available at the \texttt{/docs} endpoint of the backend service.
-
-\subsection{Application Deployment}
-
-The system is designed to be environment-agnostic using containerization. The deployment process is managed via Docker Compose, which orchestrates the lifecycle of the frontend, backend, and database services.
-
-\subsubsection{Environment Configuration}
-Before deployment, the system requires an environment configuration file (\texttt{.env}). This file defines sensitive information and system-wide constants, including:
-\begin{itemize}
-    \item \texttt{SECRET\_KEY}: A unique key used for signing JWT tokens.
-    \item \texttt{DATABASE\_URL}: Connection string for the PostgreSQL instance.
-    \item \texttt{ADMIN\_CREDENTIALS}: Initial setup for the administrative user (hashed via Argon2id).
-\end{itemize}
-
-\subsubsection{Deployment Steps}
-To deploy the application in a development or production-ready state, the following sequence of commands is executed:
-
-\begin{lstlisting}[style=pythonstyle, language=bash, caption=System Deployment Commands]
-# 1. Build and start the containers
-docker compose up --build -d
-
-# 2. Run database migrations to create the schema
-docker compose exec backend alembic upgrade head
-
-# 3. Populate the database with initial demo data
-docker compose exec backend python seed.py
-\end{lstlisting}
-
-\subsubsection{Service Access}
-Once deployed, the system components are accessible at the following local endpoints:
-\begin{itemize}
-    \item \textbf{Frontend Application:} \href{http://localhost:5173}{http://localhost:5173}
-    \item \textbf{REST API Root:} \href{http://localhost:8000}{http://localhost:8000}
-    \item \textbf{Interactive API Documentation (Swagger):} \href{http://localhost:8000/docs}{http://localhost:8000/docs}
-\end{itemize}

@@ -88,7 +88,7 @@ def rent_car(payload: CarRentalRequest, current_customer=Depends(get_current_cus
 
 \subsubsection{Rental Lifecycle}
 
-Rental state is controlled by a service module instead of being hard-coded in individual endpoints. A newly created unpaid rental receives the \texttt{reserved} status and blocks the car only for a short payment hold. Paid reservations block the period permanently, active rentals block the car immediately and expired unpaid reservations are cancelled automatically.
+Rental state is controlled by a service module instead of being hard-coded in individual endpoints. A newly created unpaid rental receives the \texttt{reserved} status and blocks the car only for a short payment hold. Paid reservations block the period permanently, active rentals block the car immediately and expired unpaid reservations are canceled automatically.
 
 \begin{lstlisting}[style=pythonstyle,caption={Core availability rule for rentals},label={lst:backend-availability-short}]
 ACTIVE_STATUS = "active"
