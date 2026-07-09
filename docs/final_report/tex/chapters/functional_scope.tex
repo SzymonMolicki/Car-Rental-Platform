@@ -1,27 +1,38 @@
 \section{Functional Scope}
 
+The implemented functionality reflects the typical workflow of a modern car rental company. The system supports both customer-oriented services and administrative operations, providing tools required to manage the complete rental process from reservation creation to invoice generation.
+
 \subsection{Customer Features}
 
-The customer part of the system provides all essential functionalities required to rent vehicles online.
+The customer part of the system enables users to independently complete the entire rental process through a web interface. Customers can create accounts, browse available vehicles, reserve cars, complete payments, and access information about previous rentals without requiring direct assistance from company staff.
 
 The implemented features include:
 
 \begin{itemize}
+
     \item \textbf{User registration and authentication}
+
+    Customers can create personal accounts and securely access the application. Authentication is based on JSON Web Tokens (JWT), allowing users to manage their personal information and maintain their accounts throughout the entire rental process.
+
     \begin{itemize}
         \item creation of a new customer account,
         \item secure login using JWT authentication,
         \item profile management and editing personal information,
-        \item account deletion.
     \end{itemize}
 
     \item \textbf{Vehicle browsing}
+
+    Before making a reservation, customers can browse the available fleet and compare vehicles based on their characteristics, rental category, pricing, and pickup location. The presented information allows customers to select a vehicle appropriate for their needs.
+
     \begin{itemize}
         \item displaying the list of available cars,
-        \item viewing vehicle details including model, category, pricing, and rental location.
+        \item viewing vehicle details including model, category, and pricing.
     \end{itemize}
 
     \item \textbf{Rental management}
+
+    The reservation module guides customers through the rental process while ensuring compliance with business rules. Vehicle availability is verified for the selected rental period, preventing multiple customers from reserving the same vehicle simultaneously. Rental costs are calculated automatically based on the selected dates and vehicle pricing.
+
     \begin{itemize}
         \item creating new rental reservations,
         \item selecting pickup and return locations,
@@ -30,6 +41,9 @@ The implemented features include:
     \end{itemize}
 
     \item \textbf{Online payment}
+
+    After creating a reservation, customers can complete payment directly through the application. The payment process supports promotional discount coupons, validates their eligibility, and records payment information required for invoice generation.
+
     \begin{itemize}
         \item payment for reservations,
         \item support for multiple payment methods,
@@ -38,20 +52,28 @@ The implemented features include:
     \end{itemize}
 
     \item \textbf{Rental history}
+
+    The application stores information about both current and completed rentals, allowing customers to review previous reservations and download invoices generated for paid rentals.
+
     \begin{itemize}
         \item viewing previous and current rentals,
         \item downloading generated invoices for completed and paid rentals.
     \end{itemize}
+
 \end{itemize}
 
 \subsection{Administrator Features}
 
-The administrative panel provides tools required to manage the rental company's daily operations.
+The administrative panel centralizes the operational activities required to manage the rental company. It provides access to business data and management tools necessary to maintain the vehicle fleet, customer accounts, reservations, and promotional campaigns.
 
 The implemented administrator functionalities include:
 
 \begin{itemize}
+
     \item \textbf{Fleet management}
+
+    Administrators maintain an up-to-date representation of the company's vehicle fleet by adding new vehicles, modifying existing records, and removing vehicles that are no longer available for rental.
+
     \begin{itemize}
         \item adding new vehicles,
         \item editing vehicle information,
@@ -60,6 +82,9 @@ The implemented administrator functionalities include:
     \end{itemize}
 
     \item \textbf{Customer management}
+
+    Customer management tools provide administrators with access to registered user accounts and their associated information. This functionality supports customer service and ensures that customer records remain accurate and up to date.
+
     \begin{itemize}
         \item browsing registered customers,
         \item viewing customer information,
@@ -67,6 +92,9 @@ The implemented administrator functionalities include:
     \end{itemize}
 
     \item \textbf{Rental management}
+
+    Administrators can supervise all reservations created within the system, monitor their current status, and access invoices associated with completed rentals. These tools support the day-to-day operation of the rental business.
+
     \begin{itemize}
         \item viewing all rentals within the system,
         \item monitoring reservation status,
@@ -74,6 +102,9 @@ The implemented administrator functionalities include:
     \end{itemize}
 
     \item \textbf{Discount management}
+
+    Promotional campaigns are managed through configurable discount coupons. Administrators can introduce new promotions, modify existing offers, and remove discounts that are no longer valid.
+
     \begin{itemize}
         \item creating promotional discount codes,
         \item modifying existing discounts,
@@ -82,10 +113,14 @@ The implemented administrator functionalities include:
     \end{itemize}
 
     \item \textbf{Lookup data}
+
+    The administrative interface provides access to shared lookup data used throughout the system. These predefined values ensure consistency across different parts of the application and simplify administrative data entry.
+
     \begin{itemize}
         \item accessing shared lookup data used throughout the administrative interface,
         \item supporting consistent selection of predefined values required by the system.
     \end{itemize}
+
 \end{itemize}
 
-The administrator interface centralizes all operational activities required to maintain the rental service and enables efficient management of business data through a single web application.
+The combination of customer-facing and administrative functionality enables Metrocars to simulate the operation of a real-world car rental company. The implemented features demonstrate how a database-driven information system can coordinate reservations, maintain data consistency, support business processes, and provide separate interfaces tailored to different groups of users.

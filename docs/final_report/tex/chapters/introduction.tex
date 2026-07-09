@@ -3,13 +3,23 @@
 
 \subsection{Project Goal}
 
-The goal of the project was to design and implement a database-driven information system supporting the operation of a car rental company. The system provides a web-based platform that enables customers to browse available vehicles, make reservations, complete online payments, manage their profiles, and access their rental history. At the same time, it offers administrative tools for managing the vehicle fleet, customers, rentals, discount coupons, and invoices.
+The goal of the project was to design and implement a database-driven information system supporting the operation of a car rental company.
 
-The project emphasizes the practical application of database systems by integrating a relational database with a modern backend API and a web-based frontend. Particular attention was given to maintaining data consistency, enforcing business rules, and providing secure authentication and authorization mechanisms.
+The system provides a web-based platform that enables customers to browse available vehicles, make reservations, complete online payments, manage their profiles, and access their rental history. At the same time, it offers administrative tools for managing the vehicle fleet, customers, rentals, discount coupons, and invoices.
+
+Car rental companies require centralized information systems to coordinate reservations, maintain accurate information about vehicle availability, process customer payments, generate invoices, and support day-to-day administrative operations. Without such a system, managing concurrent reservations, customer records, and vehicles distributed across multiple locations becomes inefficient and error-prone.
+
+The project emphasizes the practical application of database systems by integrating a relational database with a modern backend API and a web-based frontend. Particular attention was given to maintaining data consistency, enforcing business rules, preventing conflicting reservations for the same vehicle, and providing secure authentication and authorization mechanisms.
 
 \subsection{Project Scope}
 
-The project covers the complete rental workflow from both the customer's and the administrator's perspective. The implemented system consists of three main components:
+The implemented system, named \textbf{Metrocars}, simulates the operation of a modern car rental company with multiple rental locations within the GZM metropolitan area. The application models the complete rental process, beginning with customer registration and vehicle selection and ending with payment processing and invoice generation.
+
+Metrocars supports both customer-facing services and the administrative activities required to operate a rental business. Customers can search for available vehicles, create reservations, complete online payments, and access their rental history. Administrators are provided with tools for managing the vehicle fleet, monitoring reservations, maintaining customer information, and managing promotional discount campaigns.
+
+From the database perspective, the project simulates the design and implementation of a relational database supporting a real-world business process.
+
+The implemented system consists of three main components:
 
 \begin{itemize}
     \item a PostgreSQL relational database responsible for storing all application data,
@@ -17,7 +27,7 @@ The project covers the complete rental workflow from both the customer's and the
     \item a React frontend providing an intuitive graphical user interface.
 \end{itemize}
 
-The application supports customer registration and authentication, vehicle browsing, rental creation, online payment simulation, discount coupon handling, invoice generation, rental history management, and administrative operations related to vehicles, customers, rentals, and promotional discounts.
+Together, these components create an integrated information system that supports the complete rental workflow while ensuring reliable communication between the user interface, application logic, and database layer.
 
 \subsection{Target Users}
 
@@ -29,7 +39,7 @@ The system is designed for two primary groups of users:
         \item create and manage personal accounts,
         \item browse available vehicles,
         \item reserve cars,
-        \item complete online payments, which may use promotional discount codes,
+        \item complete online payments, optionally using promotional discount codes,
         \item review rental history,
         \item download invoices.
     \end{itemize}
@@ -38,8 +48,7 @@ The system is designed for two primary groups of users:
     \begin{itemize}
         \item managing the vehicle fleet,
         \item managing customer accounts,
-        \item monitoring and settling rentals,
-        \item generating invoices,
+        \item monitoring reservations,
         \item managing promotional discount campaigns,
         \item maintaining the overall operation of the rental company.
     \end{itemize}
