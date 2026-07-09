@@ -1,7 +1,46 @@
+\pagebreak
 \section{Introduction}
 
 \subsection{Project Goal}
 
+The goal of the project was to design and implement a database-driven information system supporting the operation of a car rental company. The system provides a web-based platform that enables customers to browse available vehicles, make reservations, complete online payments, manage their profiles, and access their rental history. At the same time, it offers administrative tools for managing the vehicle fleet, customers, rentals, discount coupons, and invoices.
+
+The project emphasizes the practical application of database systems by integrating a relational database with a modern backend API and a web-based frontend. Particular attention was given to maintaining data consistency, enforcing business rules, and providing secure authentication and authorization mechanisms.
+
 \subsection{Project Scope}
 
+The project covers the complete rental workflow from both the customer's and the administrator's perspective. The implemented system consists of three main components:
+
+\begin{itemize}
+    \item a PostgreSQL relational database responsible for storing all application data,
+    \item a FastAPI backend exposing REST API endpoints and implementing business logic,
+    \item a React frontend providing an intuitive graphical user interface.
+\end{itemize}
+
+The application supports customer registration and authentication, vehicle browsing, rental creation, online payment simulation, discount coupon handling, invoice generation, rental history management, and administrative operations related to vehicles, customers, rentals, and promotional discounts.
+
 \subsection{Target Users}
+
+The system is designed for two primary groups of users:
+
+\begin{itemize}
+    \item \textbf{Customers}, who use the application to:
+    \begin{itemize}
+        \item create and manage personal accounts,
+        \item browse available vehicles,
+        \item reserve cars,
+        \item complete online payments, which may use promotional discount codes,
+        \item review rental history,
+        \item download invoices.
+    \end{itemize}
+
+    \item \textbf{Administrators}, who are responsible for:
+    \begin{itemize}
+        \item managing the vehicle fleet,
+        \item managing customer accounts,
+        \item monitoring and settling rentals,
+        \item generating invoices,
+        \item managing promotional discount campaigns,
+        \item maintaining the overall operation of the rental company.
+    \end{itemize}
+\end{itemize}
