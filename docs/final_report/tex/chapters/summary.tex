@@ -2,6 +2,35 @@
 
 \subsection{Completed Work}
 
+The objective of the project was to design and implement a database-driven information system supporting the operation of a car rental company. This objective was successfully achieved through the development of \textbf{Metrocars}, a complete web application consisting of a PostgreSQL database, a FastAPI backend, and a React frontend.
+
+The implemented system supports the complete rental workflow, including customer registration, authentication, vehicle browsing, reservation management, online payments, invoice generation, and rental history. In addition, an administrative interface was developed to manage vehicles, customers, reservations, and promotional discount campaigns.
+
+From the database perspective, the project demonstrates the design of a normalized relational schema capable of supporting real-world business processes while maintaining data integrity through constraints, relationships, and application-level business rules. The integration of the database with the REST API and graphical user interface illustrates the practical application of database technologies in a multi-tier information system.
+
+The use of Docker Compose, Alembic migrations, and deterministic database seeding further improves the reproducibility of the development environment and simplifies deployment and testing.
+
 \subsection{Problems Encountered}
 
+The primary challenge encountered during the project concerned the design of the database schema. Following the initial review, it became apparent that several attributes had been modeled directly within existing tables even though they were better represented as separate entities connected through foreign key relationships. In addition, some values that were originally stored within operational tables were identified as suitable candidates for dedicated lookup (dictionary) tables in order to improve normalization and maintain consistency.
+
+To address these issues, the database schema was redesigned and a revised version was prepared. The corrected schema was subsequently accepted and served as the foundation for the implementation of the database and application.
+
+Another challenge involved learning how to correctly integrate the database with the backend application in practice. This required gaining practical experience with SQLAlchemy as the Object-Relational Mapper (ORM), configuring the connection between the FastAPI application and the PostgreSQL database, and using Alembic to manage database schema migrations. Understanding how these technologies work together was an important part of the implementation process and provided valuable experience in developing database-driven applications.
+
 \subsection{Future Improvements}
+
+Although the implemented system satisfies the functional requirements defined for the project, several extensions could further improve its capabilities.
+
+Possible future developments include:
+
+\begin{itemize}
+    \item integration with external payment providers instead of the simulated payment process,
+    \item email notifications for reservation confirmations, payment receipts, and rental reminders,
+    \item support for uploading vehicle photographs and additional documentation,
+    \item advanced vehicle search with filtering and sorting based on multiple criteria,
+    \item implementation of customer reviews and vehicle ratings,
+    \item analytical dashboards presenting statistics on rentals, vehicle utilization, and company revenue.
+\end{itemize}
+
+Overall, the project demonstrates the complete development process of a modern database-driven information system. It combines relational database design, backend business logic, REST API development, frontend implementation, authentication mechanisms, and containerized deployment into a cohesive application that reflects the operation of a real-world car rental company.
