@@ -1,7 +1,53 @@
 \section{Implementation Overview}
 
+\subsection{Backend Implementation}
+
+The backend was implemented using FastAPI following a layered architecture that separates API endpoints, business logic, database models and validation. The application exposes a REST API responsible for customer management, vehicle management, rental processing, payments and administrative operations.
+
+The project is organized into several modules:
+
+\begin{itemize}
+    \item \texttt{api} – REST endpoints grouped by functionality,
+    \item \texttt{models} – SQLAlchemy ORM classes representing database tables,
+    \item \texttt{schemas} – Pydantic models used for request validation and API responses,
+    \item \texttt{services} – reusable business logic implementing rental rules and payment processing,
+    \item \texttt{core} – shared infrastructure including configuration, security, authentication and database sessions.
+\end{itemize}
+
+Database communication is handled through SQLAlchemy ORM using request-scoped sessions. Schema evolution is managed with Alembic migrations, while the database can be populated with deterministic test data using the provided seed script.
+
+Authentication is based on JWT Bearer tokens. Customer passwords are securely stored using the Argon2 hashing algorithm. Authorization is enforced through FastAPI dependencies that verify user roles before protected endpoints are executed.
+
+Business logic is implemented inside service modules rather than directly in API endpoints. This includes customer validation, vehicle availability checks, reservation lifecycle management, payment processing, invoice generation and discount calculation. Separating business logic from HTTP routing improves maintainability and enables code reuse across multiple endpoints.
+
+Input validation is performed using Pydantic schemas before requests reach the service layer. Database transactions ensure that related operations, such as creating rentals together with invoices, are executed atomically, preserving consistency even when errors occur.
+
 \input{chapters/subchapters/backend_implementation}
 
 \input{chapters/subchapters/frontend_implementation}
 
-\subsection{Test Data}
+\section{Test Data}
+
+To simplify development and provide a reproducible testing environment, the project includes a deterministic database seeding script (\texttt{seed.py}). The script automatically populates the database with representative records covering all major entities and their relationships.
+
+The generated dataset consists of:
+
+\begin{itemize}
+    \item 12 rental locations distributed across cities in the Silesian region,
+    \item 50 vehicles representing different categories, fuel types and transmission types,
+    \item 100 customer accounts with complete personal information,
+    \item 150 rentals covering completed, active and future reservations,
+    \item invoices generated for rentals together with payment information,
+    \item promotional discount codes,
+    \item all lookup tables required by the application.
+\end{itemize}
+
+The lookup tables are initialized first and include predefined values for vehicle status, vehicle type, fuel type, transmission type, rental status, invoice status, payment status and payment methods.
+
+Vehicles are generated using predefined model templates that specify attributes such as brand, model, fuel type, transmission, seating capacity and daily rental rate. Each vehicle is assigned a unique VIN number, registration plate, mileage and rental location.
+
+Customer records contain realistic personal information including addresses, e-mail addresses, phone numbers and driving licence information. Passwords are automatically hashed using the Argon2 algorithm before being stored in the database.
+
+Rental records are generated to represent different stages of the rental lifecycle. Completed rentals include invoices and payment information, active rentals occupy vehicles currently marked as rented, while future reservations simulate upcoming bookings. Rental prices are calculated automatically based on the vehicle's daily rate and rental duration. Selected rentals additionally receive promotional discounts.
+
+Because the seed script is deterministic, every developer obtains exactly the same dataset after initialization, making application testing, demonstrations and debugging fully reproducible.
