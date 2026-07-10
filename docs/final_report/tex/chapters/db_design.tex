@@ -2,6 +2,79 @@
 
 \subsection{Database Diagram}
 
+The database was designed using the relational model and normalized to reduce data redundancy while maintaining data integrity. The central entity of the schema is the \texttt{RENTAL} table, which connects customers, vehicles, rental locations and the rental lifecycle.
+
+The database consists of transactional entities, such as \texttt{RENTAL} and \texttt{INVOICE}, together with several lookup tables that store predefined values for vehicle characteristics, rental states and payment information. This approach simplifies maintenance, improves consistency, and allows new values to be introduced without modifying the application logic.
+
+Figure~\ref{fig:db_diagram} presents the complete database schema.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{DB_diagram.pdf}
+    \caption{Relational database schema of the Car Rental Company system.}
+    \label{fig:db_diagram}
+\end{figure}
+
+
+\newpage
 \subsection{Main Entities}
 
+The database is composed of several groups of entities that together implement the complete rental process.
+
+\begin{itemize}
+    \item \textbf{Customer management}
+    \begin{itemize}
+        \item \texttt{CUSTOMER} stores personal information, authentication data and driving licence details.
+        \item \texttt{ADDRESS} stores reusable address information shared by customers and rental locations.
+    \end{itemize}
+
+    \item \textbf{Rental locations}
+    \begin{itemize}
+        \item \texttt{LOCATION} represents company branches where vehicles are stored, collected and returned.
+    \end{itemize}
+
+    \item \textbf{Fleet management}
+    \begin{itemize}
+        \item \texttt{CAR} stores all information describing a vehicle, including technical parameters, daily rental rate and its current location.
+        \item Lookup tables (\texttt{CAR\_TYPE}, \texttt{FUEL\_TYPE}, \texttt{TRANSMISSION}, \texttt{CAR\_STATUS}) provide normalized descriptions of vehicle properties.
+    \end{itemize}
+
+    \item \textbf{Rental processing}
+    \begin{itemize}
+        \item \texttt{RENTAL} represents reservations and active rentals, linking customers, vehicles and pickup/return locations.
+        \item \texttt{RENTAL\_STATUS} stores predefined rental lifecycle states such as Reserved, Active, Completed or Cancelled.
+    \end{itemize}
+
+    \item \textbf{Payments and invoicing}
+    \begin{itemize}
+        \item \texttt{INVOICE} stores financial information associated with a rental, including calculated amounts and payment details.
+        \item \texttt{PAYMENT\_METHOD}, \texttt{PAYMENT\_STATUS} and \texttt{INVOICE\_STATUS} normalize payment-related information.
+        \item \texttt{DISCOUNT} stores promotional discount codes together with their validity periods and percentage values.
+    \end{itemize}
+
+Together, these entities provide complete support for customer management, vehicle management, reservation handling and financial settlement.
+
+
 \subsection{Relationships Between Entities}
+
+The relationships between entities reflect the business workflow of the rental company.
+
+\begin{itemize}
+    \item One \texttt{ADDRESS} may be referenced by multiple customers or rental locations, while every customer and location is associated with exactly one address.
+    
+    \item Each \texttt{CAR} belongs to one current rental location and references exactly one fuel type, transmission type, vehicle category and operational status.
+
+    \item A customer may create multiple rentals, whereas each rental belongs to exactly one customer and one vehicle.
+
+    \item Every rental specifies one pickup location and one return location. Both relationships reference the \texttt{LOCATION} entity.
+
+    \item Each rental has one rental status describing its current stage within the rental lifecycle.
+
+    \item Every completed payment generates one invoice associated with exactly one rental.
+
+    \item An invoice references one payment method, one payment status and one invoice status. Optionally, it may also reference a discount coupon if one was applied during payment.
+
+    \item Lookup tables are connected using one-to-many relationships, ensuring that frequently reused values remain normalized and consistent throughout the database.
+\end{itemize}
+
+Overall, the schema follows standard relational database design principles. The use of primary keys, foreign keys and lookup tables minimizes redundancy, preserves referential integrity and supports efficient querying of rental, customer and payment data.
